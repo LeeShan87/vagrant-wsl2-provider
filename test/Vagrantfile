@@ -1,0 +1,21 @@
+# Test Vagrantfile for vagrant-wsl2-provider
+
+Vagrant.configure("2") do |config|
+  config.vm.box = "ubuntu/focal64"
+
+  config.vm.provider "wsl2" do |wsl|
+    wsl.distribution_name = "vagrant-wsl2-test"
+    wsl.version = 2
+    wsl.memory = 2048
+    wsl.cpus = 2
+    wsl.gui_support = false
+  end
+
+  # Test provisioning
+  config.vm.provision "shell", inline: <<-SHELL
+    echo "Hello from WSL2 Vagrant provider!"
+    whoami
+    uname -a
+    echo "Test completed successfully"
+  SHELL
+end

@@ -1,0 +1,14 @@
+en:
+  vagrant_wsl2:
+    states:
+      not_created: "The WSL2 distribution is not created"
+      running: "The WSL2 distribution is running"
+      stopped: "The WSL2 distribution is stopped"
+      unknown: "The WSL2 distribution is in an unknown state"
+
+    errors:
+      windows_required: "This provider only works on Windows"
+      wsl_not_installed: "WSL is not installed or not available"
+      wsl_command_failed: "WSL command failed: %{command}\nError: %{stderr}"
+      distribution_not_found: "WSL2 distribution not found"
+      distribution_already_exists: "WSL2 distribution '%{name}' already exists"
