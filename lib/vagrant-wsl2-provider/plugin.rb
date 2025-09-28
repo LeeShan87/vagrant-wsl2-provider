@@ -27,6 +27,18 @@ module VagrantPlugins
         require_relative "config"
         Config
       end
+
+      communicator "wsl2" do
+        require_relative "communicator"
+        Communicator
+      end
+
+      # Universal guest capability for shell path expansion
+      guest_capability "linux", "shell_expand_guest_path" do
+        require_relative "cap/shell_expand_guest_path"
+        Cap::ShellExpandGuestPath
+      end
+
     end
   end
 end

@@ -1,0 +1,30 @@
+---
+- name: Test Ansible Playbook for WSL2 Provider
+  hosts: all
+  become: yes
+  tasks:
+    - name: Ensure test directory exists
+      file:
+        path: /home/vagrant/ansible-test
+        state: directory
+        owner: vagrant
+        group: vagrant
+        mode: '0755'
+
+    - name: Create test file with Ansible
+      copy:
+        content: "Ansible provisioner working on WSL2!"
+        dest: /home/vagrant/ansible-test/ansible-test.txt
+        owner: vagrant
+        group: vagrant
+        mode: '0644'
+
+    - name: Install a test package
+      apt:
+        name: htop
+        state: present
+        update_cache: yes
+
+    - name: Display Ansible facts
+      debug:
+        msg: "Ansible provisioning completed on {{ ansible_hostname }} ({{ ansible_distribution }} {{ ansible_distribution_version }})"

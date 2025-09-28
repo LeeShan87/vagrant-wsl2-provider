@@ -1,7 +1,7 @@
 # Test Vagrantfile for vagrant-wsl2-provider
 
 Vagrant.configure("2") do |config|
-  config.vm.box = "ubuntu/focal64"
+  config.vm.box = "Ubuntu-24.04"
 
   config.vm.provider "wsl2" do |wsl|
     wsl.distribution_name = "vagrant-wsl2-test"
@@ -11,11 +11,72 @@ Vagrant.configure("2") do |config|
     wsl.gui_support = false
   end
 
-  # Test provisioning
+  # Test additional shared folder
+  config.vm.synced_folder "../", "/vagrant-shared"
+
+  # Test shell provisioning
   config.vm.provision "shell", inline: <<-SHELL
+    echo "=== Shell Provisioner Test ==="
     echo "Hello from WSL2 Vagrant provider!"
     whoami
     uname -a
-    echo "Test completed successfully"
+    echo "Shell provisioner completed successfully"
+    echo "shell-test" > /home/vagrant/shell-test.txt
   SHELL
+
+  # Test file provisioner (disabled due to guest detection issues)
+  config.vm.provision "file", source: "test-file.txt", destination: "/home/vagrant/uploaded-file-test.txt"
+  
+  Test ansible_local provisioner
+  config.vm.provision "ansible_local" do |ansible|
+    ansible.playbook = "test-playbook.yml"
+    ansible.verbose = true
+    ansible.install = true
+    ansible.install_mode = :default  # Use apt instead of pip on Ubuntu
+  end
+
+  # Test Chef Solo provisioner
+  # The provioner fails to create a symlink for the cookbooks
+  # *** WSL2 EXECUTE: test -d /tmp/vagrant-chef/9ddb73e3544c15921a3fc2d3e99ba6a1/cookbooks ***
+  # Shared folders that Chef requires are missing on the virtual machine.
+  # This is usually due to configuration changing after already booting the
+  # machine. The fix is to run a `vagrant reload` so that the proper shared
+  # folders will be prepared and mounted on the VM.
+  #
+  # config.vm.provision "chef_solo" do |chef|
+  #   chef.cookbooks_path = "cookbooks"
+  #   chef.add_recipe "test-cookbook::default"
+  #   chef.arguments = "--chef-license accept"  # Accept Chef license
+  #   chef.json = {
+  #     "test" => {
+  #       "message" => "Hello from Chef on WSL2!"
+  #     }
+  #   }
+  # end
+
+  # Test SaltStack provisioner
+  # In version 2.4.1, Vagrant attempted to bootstrap Salt using https://bootstrap.saltproject.io/. 
+  # However, this script has since moved to https://github.com/saltstack/salt-bootstrap/releases/latest/download/bootstrap-salt.sh. 
+  # Because the old site no longer hosts the required script, Vagrant is unable to complete the bootstrap process.
+  # Recommended updating Vagrant to a version that recognises this change (Latest Vagrant Version 2.4.6)—the process should work correctly after upgrading.
+  # config.vm.provision "salt" do |salt|
+  #   salt.masterless = true
+  #   salt.minion_config = "salt/minion"
+  #   salt.run_highstate = true
+  #   salt.install_type = "stable"
+  #   salt.verbose = true
+  # end
+
+  # Show provisioning results
+  config.vm.provision "shell", inline: <<-SHELL
+    echo "=== Provisioning Results ==="
+    echo "Files in /home/vagrant/:"
+    ls -la /home/vagrant/ | grep -E '(test|ansible|chef)'
+
+    echo "=== Shared Folders ==="
+    ls -la /vagrant-shared/
+
+    echo "=== Test Complete ==="
+  SHELL
+
 end

@@ -1,4 +1,5 @@
 require "vagrant/util/subprocess"
+require "fileutils"
 
 module VagrantPlugins
   module WSL2
@@ -10,28 +11,34 @@ module VagrantPlugins
 
       # Get the current state of the WSL2 distribution
       def state
-        result = execute("wsl", "--list", "--verbose")
+        # Check if distribution exists by trying to get its state
+        result = Vagrant::Util::Subprocess.execute("wsl", "--distribution", @config.distribution_name, "--exec", "echo")
 
-        distributions = parse_wsl_list_output(result.stdout)
-        distro = distributions.find { |d| d[:name] == @config.distribution_name }
-
-        return :not_created unless distro
-
-        case distro[:state]
-        when "Running"
-          :running
-        when "Stopped"
-          :stopped
+        case result.exit_code
+        when 0
+          # Distribution exists and is accessible, check if running
+          running_result = Vagrant::Util::Subprocess.execute("wsl", "--distribution", @config.distribution_name, "--exec", "true")
+          return running_result.exit_code == 0 ? :running : :stopped
+        when 1, 4294967295
+          # Distribution doesn't exist or WSL error
+          :not_created
         else
+          # Unknown error state
           :unknown
         end
+      rescue
+        :not_created
       end
 
       # Create a new WSL2 distribution
       def create(box_path)
+        # Ensure the distribution directory exists
+        dist_dir = distribution_path
+        FileUtils.mkdir_p(dist_dir) unless File.exist?(dist_dir)
+
         # Import the distribution from a tar.gz file
         execute("wsl", "--import", @config.distribution_name,
-                distribution_path, box_path, "--version", @config.version.to_s)
+                dist_dir, box_path, "--version", @config.version.to_s)
       end
 
       # Start the WSL2 distribution
@@ -58,6 +65,11 @@ module VagrantPlugins
         execute("wsl", "--distribution", @config.distribution_name, *args)
       end
 
+      # Public wrapper for execute method (for use by actions)
+      def execute_command(*args)
+        execute(*args)
+      end
+
       private
 
       # Execute a Windows command
@@ -65,6 +77,31 @@ module VagrantPlugins
         result = Vagrant::Util::Subprocess.execute(*args)
 
         if result.exit_code != 0
+          # Include both stdout and stderr in error message
+          error_output = ""
+          error_output += result.stdout.strip unless result.stdout.nil? || result.stdout.strip.empty?
+          error_output += "\n" unless error_output.empty? || result.stderr.nil? || result.stderr.strip.empty?
+          error_output += result.stderr.strip unless result.stderr.nil? || result.stderr.strip.empty?
+
+          raise Errors::WSLCommandFailed,
+                command: args.join(" "),
+                stderr: error_output
+        end
+
+        result
+      end
+
+      # Execute a WSL command safely, returning nil if no distributions exist
+      def execute_safe(*args)
+        result = Vagrant::Util::Subprocess.execute(*args)
+
+        if result.exit_code != 0
+          # Check if error is about no distributions installed (exit code based)
+          # WSL returns specific exit codes when no distributions are installed
+          if result.exit_code == 1 || result.exit_code == 4294967295
+            return nil
+          end
+
           raise Errors::WSLCommandFailed,
                 command: args.join(" "),
                 stderr: result.stderr
@@ -73,29 +110,6 @@ module VagrantPlugins
         result
       end
 
-      # Parse the output of 'wsl --list --verbose'
-      def parse_wsl_list_output(output)
-        distributions = []
-
-        # Skip header lines and parse each distribution
-        lines = output.split("\n")[1..-1] || []
-
-        lines.each do |line|
-          next if line.strip.empty?
-
-          # Parse line format: "  NAME    STATE    VERSION"
-          parts = line.strip.split(/\s+/)
-          next if parts.length < 3
-
-          distributions << {
-            name: parts[0].gsub(/\*/, "").strip,
-            state: parts[1],
-            version: parts[2]
-          }
-        end
-
-        distributions
-      end
 
       # Get the path where this distribution should be stored
       def distribution_path

@@ -1,0 +1,35 @@
+PATH
+  remote: .
+  specs:
+    vagrant-wsl2-provider (0.1.0)
+
+GEM
+  remote: https://rubygems.org/
+  specs:
+    diff-lcs (1.6.2)
+    rake (13.3.0)
+    rspec (3.13.1)
+      rspec-core (~> 3.13.0)
+      rspec-expectations (~> 3.13.0)
+      rspec-mocks (~> 3.13.0)
+    rspec-core (3.13.5)
+      rspec-support (~> 3.13.0)
+    rspec-expectations (3.13.5)
+      diff-lcs (>= 1.2.0, < 2.0)
+      rspec-support (~> 3.13.0)
+    rspec-mocks (3.13.5)
+      diff-lcs (>= 1.2.0, < 2.0)
+      rspec-support (~> 3.13.0)
+    rspec-support (3.13.6)
+
+PLATFORMS
+  x64-mingw-ucrt
+
+DEPENDENCIES
+  bundler (~> 2.0)
+  rake (~> 13.0)
+  rspec (~> 3.0)
+  vagrant-wsl2-provider!
+
+BUNDLED WITH
+   2.6.9

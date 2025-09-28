@@ -26,6 +26,26 @@ module VagrantPlugins
       class DistributionAlreadyExists < WSL2Error
         error_key(:distribution_already_exists)
       end
+
+      class WSLDistributionNotFound < WSL2Error
+        error_key(:wsl_distribution_not_found)
+      end
+
+      class WSLInstallFailed < WSL2Error
+        error_key(:wsl_install_failed)
+      end
+
+      class WSLExportFailed < WSL2Error
+        error_key(:wsl_export_failed)
+      end
+
+      class WSLImportFailed < WSL2Error
+        error_key(:wsl_import_failed)
+      end
+
+      class DirtyDistributionExists < WSL2Error
+        error_key(:dirty_distribution_exists)
+      end
     end
   end
 end

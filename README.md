@@ -82,3 +82,24 @@ Bug reports and pull requests are welcome on GitHub.
 ## License
 
 The gem is available as open source under the [MIT License](./LICENSE).
+
+## WSL2 Distribution Lifecycle
+
+  **Important:** WSL2 distributions behave differently from traditional VMs!
+
+  ### Automatic Sleep Mode
+  - WSL2 distributions automatically enter "stopped" state when no processes are running
+  - This is **normal behavior**, not a bug
+  - Unlike VMs, WSL2 distributions don't stay "running" idle
+
+  ### Vagrant Status Meanings
+  - `stopped` = Distribution exists, no active processes (ready to use)
+  - `running` = Distribution has active processes
+  - `not created` = Distribution doesn't exist
+
+  ### Typical Workflow
+  ```bash
+  vagrant up --provider=wsl2     # Creates distribution (shows "stopped")
+  vagrant ssh                    # Starts shell (shows "running")
+  exit                          # Shell closes (returns to "stopped")
+  vagrant status                # Shows "stopped" - this is normal!
