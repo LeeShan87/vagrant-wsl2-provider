@@ -1,0 +1,32 @@
+en:
+  vagrant_wsl2:
+    states:
+      not_created: "The WSL2 distribution is not created"
+      running: "The WSL2 distribution is running"
+      stopped: "The WSL2 distribution is stopped"
+      unknown: "The WSL2 distribution is in an unknown state"
+
+    errors:
+      windows_required: "This provider only works on Windows"
+      wsl_not_installed: "WSL is not installed or not available"
+      wsl_command_failed: "WSL command failed: %{command}\nError: %{stderr}"
+      distribution_not_found: "WSL2 distribution not found"
+      distribution_already_exists: "WSL2 distribution '%{name}' already exists"
+      wsl_distribution_not_found: "WSL distribution '%{name}' is not available. Run 'wsl --list --online' to see available distributions."
+      wsl_install_failed: "Failed to install WSL distribution '%{name}': %{stderr}"
+      wsl_export_failed: "Failed to export WSL distribution '%{name}': %{stderr}"
+      wsl_import_failed: "Failed to import WSL distribution '%{name}': %{stderr}"
+      dirty_distribution_exists: |
+        CRITICAL ERROR: Dirty WSL distribution detected!
+
+        The distribution '%{name}' already exists on your system and may contain modifications
+        that would contaminate your Vagrant environment.
+
+        To fix this, either:
+        1. Remove the existing distribution: wsl --unregister %{name}
+        2. Or manually create a clean base in cache directory: %{cache_path}
+
+        Clean base distribution name: %{clean_name}
+
+        This provider requires clean, reproducible environments and cannot proceed with
+        potentially contaminated distributions.

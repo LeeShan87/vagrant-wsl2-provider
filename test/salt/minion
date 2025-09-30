@@ -1,0 +1,5 @@
+# Salt minion configuration for WSL2 testing
+file_client: local
+file_roots:
+  base:
+    - /vagrant/salt/states

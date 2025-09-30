@@ -1,0 +1,139 @@
+# Test Vagrantfile for WSL2 Provider Provisioner Testing
+# Tests shell, file, and ansible provisioners across available WSL2 distributions
+
+# WSL2 distributions available for testing (from wsl --list --online)
+DISTRIBUTIONS = [
+  "AlmaLinux-8",
+  "AlmaLinux-9",
+
+# ==> almalinuxkitten10: Running provisioner: ansible_local...
+# /usr/bin/which: invalid option -- 's'
+# /usr/bin/dnf
+# curl: (22) The requested URL returned error: 404
+# error: skipping https://dl.fedoraproject.org/pub/epel/epel-release-latest-1.noarch.rpm - transfer failed
+# No error message
+  # "AlmaLinux-Kitten-10",
+
+# ==> almalinux10: Running provisioner: ansible_local...
+#     almalinux10: Installing Ansible...
+# /usr/bin/which: invalid option -- 's'
+# /usr/bin/dnf
+# curl: (22) The requested URL returned error: 404
+# error: skipping https://dl.fedoraproject.org/pub/epel/epel-release-latest-1.noarch.rpm - transfer failed
+# No error message
+  # "AlmaLinux-10",
+
+  "Debian",
+  "FedoraLinux-42",
+
+#   ==> suselinuxenterprise15sp6: Running provisioner: file...
+# The guest operating system of the machine could not be detected!
+# Vagrant requires this knowledge to perform specific tasks such
+# as mounting shared folders and configuring networks. Please add
+# the ability to detect this guest operating system to Vagrant
+# by creating a plugin or reporting a bug.
+  # "SUSE-Linux-Enterprise-15-SP6",
+
+# ==> suselinuxenterprise15sp7: Keeping existing default distribution: vagrant-test-almalinux8
+# ==> suselinuxenterprise15sp7: WSL2 distribution created successfully
+# ==> suselinuxenterprise15sp7: WSL2 distribution is already running
+# ==> suselinuxenterprise15sp7: Setting up shared folders for WSL2 distribution
+# ==> suselinuxenterprise15sp7: Creating shared folder: . -> /vagrant
+# No error message
+  # "SUSE-Linux-Enterprise-15-SP7",
+  
+  "Ubuntu",
+  "Ubuntu-24.04",
+
+# ==> archlinux: Running provisioner: ansible_local...
+#     archlinux: Installing Ansible...
+# bash: line 1: sudo: command not found
+# No error message  
+  # "archlinux",
+  "kali-linux",
+  "openSUSE-Tumbleweed",
+
+# ==> opensuseleap156: WSL2 distribution created successfully
+# ==> opensuseleap156: WSL2 distribution is already running
+# ==> opensuseleap156: Setting up shared folders for WSL2 distribution
+# ==> opensuseleap156: Creating shared folder: . -> /vagrant
+# No error message
+  # "openSUSE-Leap-15.6",
+
+# ==> ubuntu2004: Using WSL distribution: Ubuntu-20.04
+# ==> ubuntu2004: Creating clean base distribution: Ubuntu-20.04-vagrant-base
+# ==> ubuntu2004: Installing fresh WSL distribution: Ubuntu-20.04
+# Failed to install WSL distribution 'Ubuntu-20.04': Distribution 'Ubuntu-20.04' not found after installation completed. Check if installation was successful.  
+# Distro in the old wsl store
+  # "Ubuntu-20.04",
+
+  # ==> ubuntu2204: Creating WSL2 distribution: vagrant-test-ubuntu2204
+# ==> ubuntu2204: Using WSL distribution: Ubuntu-22.04
+# ==> ubuntu2204: Creating clean base distribution: Ubuntu-22.04-vagrant-base
+# ==> ubuntu2204: Installing fresh WSL distribution: Ubuntu-22.04
+# Failed to install WSL distribution 'Ubuntu-22.04': Distribution 'Ubuntu-22.04' not found after installation completed. Check if installation was successful.
+# Distro in the old wsl store
+  # "Ubuntu-22.04",
+
+# Oracle Linux - ALL VERSIONS ARE LEGACY DISTRIBUTIONS
+# Bug: --no-launch flag does NOT properly register legacy distributions
+# wsl --install -d OracleLinux_8_10 --no-launch → installed but NOT in wsl -l
+# wsl --install -d OracleLinux_8_10 (interactive) → appears in wsl -l
+# Legacy distributions require interactive setup (username/password prompt)
+  # "OracleLinux_7_9",
+  # "OracleLinux_8_10",
+  # "OracleLinux_9_5"
+]
+
+Vagrant.configure("2") do |config|
+  DISTRIBUTIONS.each do |distro|
+    # Clean name for Vagrant machine
+    machine_name = distro.downcase.gsub(/[^a-z0-9]/, '')
+
+    config.vm.define machine_name do |node|
+      # Set the box name to the WSL2 distribution name
+      node.vm.box = distro
+
+      node.vm.provider "wsl2" do |wsl|
+        wsl.distribution_name = "vagrant-test2-#{machine_name}"
+        wsl.memory = 1024
+        wsl.cpus = 1
+      end
+
+      node.vm.synced_folder "../", "/vagrant-shared"
+
+      # Test shell provisioning
+      node.vm.provision "shell", inline: <<-SHELL
+        echo "=== Testing #{distro} ==="
+        echo "Hello from WSL2 Vagrant provider!"
+        whoami
+        uname -a
+        echo "Shell provisioner completed successfully"
+        echo "shell-test" > /home/vagrant/shell-test.txt
+      SHELL
+
+      # Test file provisioner
+      node.vm.provision "file", source: "../test-file.txt", destination: "/home/vagrant/uploaded-file-test.txt"
+
+      # Test ansible_local provisioner (commented out for faster testing)
+      node.vm.provision "ansible_local" do |ansible|
+        ansible.playbook = "test-playbook.yml"
+        ansible.verbose = true
+        ansible.install = true
+        ansible.install_mode = :default  # Use apt instead of pip on Ubuntu
+      end
+
+      # Show provisioning results
+      node.vm.provision "shell", inline: <<-SHELL
+        echo "=== Provisioning Results for #{distro} ==="
+        echo "Files in /home/vagrant/:"
+        ls -la /home/vagrant/ | grep -E '(test|ansible|chef)' || echo "No test files found"
+
+        echo "=== Shared Folders ==="
+        ls -la /vagrant-shared/ || echo "Shared folder not accessible"
+
+        echo "=== #{distro} Test Complete ==="
+      SHELL
+    end 
+  end 
+end
