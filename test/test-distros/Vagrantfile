@@ -5,8 +5,24 @@
 DISTRIBUTIONS = [
   "AlmaLinux-8",
   "AlmaLinux-9",
-  "AlmaLinux-Kitten-10",
-  "AlmaLinux-10",
+
+# ==> almalinuxkitten10: Running provisioner: ansible_local...
+# /usr/bin/which: invalid option -- 's'
+# /usr/bin/dnf
+# curl: (22) The requested URL returned error: 404
+# error: skipping https://dl.fedoraproject.org/pub/epel/epel-release-latest-1.noarch.rpm - transfer failed
+# No error message
+  # "AlmaLinux-Kitten-10",
+
+# ==> almalinux10: Running provisioner: ansible_local...
+#     almalinux10: Installing Ansible...
+# /usr/bin/which: invalid option -- 's'
+# /usr/bin/dnf
+# curl: (22) The requested URL returned error: 404
+# error: skipping https://dl.fedoraproject.org/pub/epel/epel-release-latest-1.noarch.rpm - transfer failed
+# No error message
+  # "AlmaLinux-10",
+
   "Debian",
   "FedoraLinux-42",
 
@@ -28,7 +44,12 @@ DISTRIBUTIONS = [
   
   "Ubuntu",
   "Ubuntu-24.04",
-  "archlinux",
+
+# ==> archlinux: Running provisioner: ansible_local...
+#     archlinux: Installing Ansible...
+# bash: line 1: sudo: command not found
+# No error message  
+  # "archlinux",
   "kali-linux",
   "openSUSE-Tumbleweed",
 
@@ -54,17 +75,11 @@ DISTRIBUTIONS = [
 # Distro in the old wsl store
   # "Ubuntu-22.04",
 
-# ==> oraclelinux79: Creating WSL2 distribution: vagrant-test-oraclelinux79
-# ==> oraclelinux79: Using WSL distribution: OracleLinux_7_9
-# ==> oraclelinux79: Creating clean base distribution: OracleLinux_7_9-vagrant-base
-# ==> oraclelinux79: Installing fresh WSL distribution: OracleLinux_7_9
-# wsl: Örökölt disztribúciós regisztráció használata. Fontolja meg inkább tar-alapú disztribúció használatát.
-# Letöltés: Oracle Linux 7.9
-# Oracle Linux 7.9 letöltve.
-# A terjesztés telepítése sikerült. A wsl.exe -d Oracle Linux 7.9 használatával indítható el
-# Failed to install WSL distribution 'OracleLinux_7_9': Distribution 'OracleLinux_7_9' not found after installation completed. Check if installation was successful.
-
-# Untested
+# Oracle Linux - ALL VERSIONS ARE LEGACY DISTRIBUTIONS
+# Bug: --no-launch flag does NOT properly register legacy distributions
+# wsl --install -d OracleLinux_8_10 --no-launch → installed but NOT in wsl -l
+# wsl --install -d OracleLinux_8_10 (interactive) → appears in wsl -l
+# Legacy distributions require interactive setup (username/password prompt)
   # "OracleLinux_7_9",
   # "OracleLinux_8_10",
   # "OracleLinux_9_5"
@@ -101,12 +116,12 @@ Vagrant.configure("2") do |config|
       node.vm.provision "file", source: "../test-file.txt", destination: "/home/vagrant/uploaded-file-test.txt"
 
       # Test ansible_local provisioner (commented out for faster testing)
-      # node.vm.provision "ansible_local" do |ansible|
-      #   ansible.playbook = "../test-playbook.yml"
-      #   ansible.verbose = true
-      #   ansible.install = true
-      #   ansible.install_mode = :default  # Use apt instead of pip on Ubuntu
-      # end
+      node.vm.provision "ansible_local" do |ansible|
+        ansible.playbook = "test-playbook.yml"
+        ansible.verbose = true
+        ansible.install = true
+        ansible.install_mode = :default  # Use apt instead of pip on Ubuntu
+      end
 
       # Show provisioning results
       node.vm.provision "shell", inline: <<-SHELL

@@ -179,7 +179,8 @@ module VagrantPlugins
         end
 
         def get_cache_directory
-          cache_dir = File.expand_path("~/.vagrant.d/wsl2-cache")
+          # Use Vagrant's data directory instead of relying on HOME environment variable
+          cache_dir = File.join(Vagrant.user_data_path, "wsl2-cache")
           FileUtils.mkdir_p(cache_dir) unless File.exist?(cache_dir)
           cache_dir
         end

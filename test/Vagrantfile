@@ -27,7 +27,7 @@ Vagrant.configure("2") do |config|
   # Test file provisioner (disabled due to guest detection issues)
   config.vm.provision "file", source: "test-file.txt", destination: "/home/vagrant/uploaded-file-test.txt"
   
-  Test ansible_local provisioner
+  # Test ansible_local provisioner
   config.vm.provision "ansible_local" do |ansible|
     ansible.playbook = "test-playbook.yml"
     ansible.verbose = true
