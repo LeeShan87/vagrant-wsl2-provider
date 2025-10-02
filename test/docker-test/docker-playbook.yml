@@ -1,0 +1,98 @@
+---
+- name: Install Docker (Moby) with systemd support
+  hosts: all
+  become: yes
+  tasks:
+    - name: Update package cache
+      package:
+        update_cache: yes
+      ignore_errors: yes
+
+    - name: Install required packages
+      package:
+        name:
+          - ca-certificates
+          - curl
+          - gnupg
+          - iptables
+        state: present
+
+    - name: Add Microsoft GPG key (Debian/Ubuntu)
+      shell: |
+        curl -fsSL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor -o /usr/share/keyrings/microsoft-prod.gpg
+      when: ansible_os_family == "Debian"
+
+    - name: Add Microsoft Moby repository (Debian/Ubuntu)
+      shell: |
+        curl -fsSL https://packages.microsoft.com/config/ubuntu/$(lsb_release -rs)/prod.list | tee /etc/apt/sources.list.d/microsoft-prod.list
+      when: ansible_os_family == "Debian"
+
+    - name: Update package cache after adding repository
+      package:
+        update_cache: yes
+      ignore_errors: yes
+
+    - name: Install Moby Docker (Debian/Ubuntu)
+      package:
+        name:
+          - moby-engine
+          - moby-cli
+          - moby-containerd
+          - moby-runc
+        state: present
+      when: ansible_os_family == "Debian"
+
+    - name: Install Docker (RedHat/AlmaLinux/Fedora)
+      package:
+        name:
+          - docker
+        state: present
+      when: ansible_os_family == "RedHat"
+
+    - name: Install Docker (openSUSE)
+      package:
+        name:
+          - docker
+        state: present
+      when: ansible_os_family == "Suse"
+
+    - name: Ensure containerd is enabled and started (Debian/Ubuntu)
+      systemd:
+        name: containerd
+        enabled: yes
+        state: started
+        daemon_reload: yes
+      when: ansible_os_family == "Debian"
+
+    - name: Check if docker group exists
+      command: getent group docker
+      register: docker_group_check
+      changed_when: false
+      failed_when: false
+
+    - name: Add vagrant user to docker group
+      user:
+        name: vagrant
+        groups: docker
+        append: yes
+      when: docker_group_check.rc == 0
+
+    - name: Enable and start Docker service
+      systemd:
+        name: docker
+        enabled: yes
+        state: started
+        daemon_reload: yes
+
+    - name: Wait for Docker to be ready
+      wait_for:
+        timeout: 10
+
+    - name: Verify Docker is running
+      command: docker info
+      register: docker_info
+      changed_when: false
+
+    - name: Show Docker version
+      debug:
+        msg: "Docker is installed and running"

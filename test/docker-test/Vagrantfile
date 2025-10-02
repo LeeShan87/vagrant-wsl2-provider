@@ -1,0 +1,60 @@
+# Multi-VM Vagrantfile for Docker testing with vagrant-wsl2-provider
+# Tests Docker (Moby) installation with systemd support
+
+# Working distributions with ansible_local support
+DISTRIBUTIONS = [
+  "AlmaLinux-8",
+  "AlmaLinux-9",
+  "Debian",
+  "FedoraLinux-42",  
+  "Ubuntu",
+  "Ubuntu-24.04",
+  "kali-linux",
+  "openSUSE-Tumbleweed",
+]
+
+Vagrant.configure("2") do |config|
+  DISTRIBUTIONS.each do |distro|
+    # Clean name for Vagrant machine
+    machine_name = "docker-#{distro.downcase.gsub(/[^a-z0-9]/, '')}"
+
+    config.vm.define machine_name do |node|
+      node.vm.box = distro
+
+      node.vm.provider "wsl2" do |wsl|
+        wsl.distribution_name = "vagrant-#{machine_name}"
+        wsl.version = 2
+        wsl.memory = 2048
+        wsl.cpus = 2
+
+        # Enable systemd - required for Docker
+        wsl.systemd = true
+        wsl.default_user = "vagrant"
+        wsl.hostname = machine_name
+      end
+
+      # Install Docker using Ansible
+      node.vm.provision "ansible_local" do |ansible|
+        ansible.playbook = "docker-playbook.yml"
+        ansible.verbose = true
+        ansible.install = true
+        ansible.install_mode = :default
+      end
+
+      # Test Docker installation
+      node.vm.provision "shell", inline: <<-SHELL
+        echo "=== Testing Docker Installation on #{distro} ==="
+        sudo systemctl status docker --no-pager
+        echo ""
+        echo "=== Running hello-world container ==="
+        sudo docker run hello-world
+        echo ""
+        echo "=== Docker Info ==="
+        sudo docker --version
+        sudo docker info | grep -E "Server Version|Storage Driver|Cgroup Driver"
+        echo ""
+        echo "=== #{distro} Docker Test Complete ==="
+      SHELL
+    end
+  end
+end

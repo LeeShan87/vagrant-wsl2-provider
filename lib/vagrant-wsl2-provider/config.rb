@@ -2,6 +2,29 @@ require "vagrant"
 
 module VagrantPlugins
   module WSL2
+    class WslConf
+      def initialize
+        @config = {}
+      end
+
+      def method_missing(method, *args)
+        if method.to_s.end_with?('=')
+          key = method.to_s.chop.to_sym
+          @config[key] = args.first
+        else
+          @config[method] ||= WslConf.new
+        end
+      end
+
+      def to_h
+        result = {}
+        @config.each do |key, value|
+          result[key] = value.is_a?(WslConf) ? value.to_h : value
+        end
+        result
+      end
+    end
+
     class Config < Vagrant.plugin("2", :config)
       # WSL2 distribution name
       attr_accessor :distribution_name
@@ -24,6 +47,42 @@ module VagrantPlugins
       # Enable GUI support (WSLg)
       attr_accessor :gui_support
 
+      # wsl.conf configuration
+      attr_reader :wsl_conf
+
+      # Aliases for common wsl.conf settings
+      def systemd=(value)
+        @wsl_conf.boot.systemd = value
+      end
+
+      def systemd
+        @wsl_conf.boot.systemd
+      end
+
+      def boot_command=(value)
+        @wsl_conf.boot.command = value
+      end
+
+      def boot_command
+        @wsl_conf.boot.command
+      end
+
+      def hostname=(value)
+        @wsl_conf.network.hostname = value
+      end
+
+      def hostname
+        @wsl_conf.network.hostname
+      end
+
+      def default_user=(value)
+        @wsl_conf.user.default = value
+      end
+
+      def default_user
+        @wsl_conf.user.default
+      end
+
       def initialize
         @distribution_name = UNSET_VALUE
         @version = UNSET_VALUE
@@ -32,6 +91,7 @@ module VagrantPlugins
         @kernel_command_line = UNSET_VALUE
         @swap = UNSET_VALUE
         @gui_support = UNSET_VALUE
+        @wsl_conf = WslConf.new
       end
 
       def finalize!

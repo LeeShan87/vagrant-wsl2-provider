@@ -43,11 +43,13 @@ module VagrantPlugins
 
       # Start the WSL2 distribution
       def start
+        @machine.ui.info "Starting WSL2 distribution: #{@config.distribution_name}"
         execute("wsl", "--distribution", @config.distribution_name, "--exec", "true")
       end
 
       # Stop the WSL2 distribution
       def halt
+        @machine.ui.info "Stopping WSL2 distribution: #{@config.distribution_name}"
         execute("wsl", "--terminate", @config.distribution_name)
       end
 
@@ -69,6 +71,53 @@ module VagrantPlugins
       def execute_command(*args)
         execute(*args)
       end
+
+      # Apply wsl.conf configuration to the distribution
+      def apply_wsl_conf
+        wsl_conf_content = generate_wsl_conf
+        return if wsl_conf_content.empty?
+
+        # Write wsl.conf to /etc/wsl.conf in the distribution
+        execute_in_wsl("bash", "-c", "cat > /etc/wsl.conf << 'EOF'\n#{wsl_conf_content}\nEOF")
+
+        # Restart the distribution to apply wsl.conf changes
+        @machine.ui.info "Restarting distribution to apply wsl.conf changes"
+        @machine.ui.warn "This will shutdown ALL WSL2 distributions to apply configuration"
+
+        # Use wsl --shutdown to fully restart WSL2 backend
+        # This is required for wsl.conf changes (especially systemd) to take effect
+        Vagrant::Util::Subprocess.execute("wsl", "--shutdown")
+
+        # Wait for WSL2 to fully shutdown
+        sleep 2
+
+        start
+      end
+
+      private
+
+      # Generate wsl.conf content from configuration
+      def generate_wsl_conf
+        config_hash = @config.wsl_conf.to_h
+        return "" if config_hash.empty?
+
+        content = []
+
+        config_hash.each do |section, values|
+          next if values.nil? || values.empty?
+
+          content << "[#{section}]"
+          values.each do |key, value|
+            next if value.nil?
+            content << "#{key}=#{value}"
+          end
+          content << ""
+        end
+
+        content.join("\n")
+      end
+
+      public
 
       private
 

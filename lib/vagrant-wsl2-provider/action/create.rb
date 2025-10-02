@@ -60,6 +60,10 @@ module VagrantPlugins
           env[:ui].info "Setting up vagrant user and environment"
           setup_vagrant_user(env, config.distribution_name)
 
+          # Apply wsl.conf configuration
+          env[:ui].info "Applying wsl.conf configuration"
+          driver.apply_wsl_conf
+
           # Set the project distribution as default only if cache is currently default
           current_default = get_current_default_distribution
           if current_default == clean_base_name
