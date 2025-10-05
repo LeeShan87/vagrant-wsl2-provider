@@ -12,6 +12,11 @@ module VagrantPlugins
       autoload :PrepareEnvironment, File.expand_path("../action/prepare_environment", __FILE__)
       autoload :WSLShell, File.expand_path("../action/wsl_shell", __FILE__)
       autoload :ShareFolders, File.expand_path("../action/share_folders", __FILE__)
+      autoload :SSHRun, File.expand_path("../action/ssh_run", __FILE__)
+      autoload :SnapshotList, File.expand_path("../action/snapshot_list", __FILE__)
+      autoload :SnapshotSave, File.expand_path("../action/snapshot_save", __FILE__)
+      autoload :SnapshotRestore, File.expand_path("../action/snapshot_restore", __FILE__)
+      autoload :SnapshotDelete, File.expand_path("../action/snapshot_delete", __FILE__)
     end
     class Provider < Vagrant.plugin("2", :provider)
       def initialize(machine)
@@ -28,8 +33,13 @@ module VagrantPlugins
         return action_halt if name == :halt
         return action_destroy if name == :destroy
         return action_ssh if name == :ssh
+        return action_ssh_run if name == :ssh_run
         return action_provision if name == :provision
         return action_reload if name == :reload
+        return action_snapshot_list if name == :snapshot_list
+        return action_snapshot_save if name == :snapshot_save
+        return action_snapshot_restore if name == :snapshot_restore
+        return action_snapshot_delete if name == :snapshot_delete
         nil
       end
 
@@ -158,6 +168,23 @@ module VagrantPlugins
         end
       end
 
+      # Define action middleware for 'vagrant ssh -c command'
+      def action_ssh_run
+        Vagrant::Action::Builder.new.tap do |b|
+          b.use Vagrant::Action::Builtin::ConfigValidate
+          b.use Vagrant::Action::Builtin::Call, Vagrant::Action::Builtin::IsState, :running do |env, b2|
+            if env[:result]
+              b2.use Action::PrepareEnvironment
+              b2.use Action::SSHRun
+            else
+              env[:ui].info("Machine is not running, starting it up...")
+              b2.use action_up
+              b2.use Action::SSHRun
+            end
+          end
+        end
+      end
+
       # Define action middleware for 'vagrant provision'
       def action_provision
         Vagrant::Action::Builder.new.tap do |b|
@@ -190,6 +217,54 @@ module VagrantPlugins
               b2.use Action::Start
             end
           end
+        end
+      end
+
+      # Define action middleware for 'vagrant snapshot list'
+      def action_snapshot_list
+        Vagrant::Action::Builder.new.tap do |b|
+          b.use Vagrant::Action::Builtin::ConfigValidate
+          b.use Action::PrepareEnvironment
+          b.use Action::SnapshotList
+        end
+      end
+
+      # Define action middleware for 'vagrant snapshot save'
+      def action_snapshot_save
+        Vagrant::Action::Builder.new.tap do |b|
+          b.use Vagrant::Action::Builtin::ConfigValidate
+          b.use Vagrant::Action::Builtin::Call, Vagrant::Action::Builtin::IsState, :not_created do |env, b2|
+            if env[:result]
+              raise Vagrant::Errors::VMNotCreatedError
+            else
+              b2.use Action::PrepareEnvironment
+              b2.use Action::SnapshotSave
+            end
+          end
+        end
+      end
+
+      # Define action middleware for 'vagrant snapshot restore'
+      def action_snapshot_restore
+        Vagrant::Action::Builder.new.tap do |b|
+          b.use Vagrant::Action::Builtin::ConfigValidate
+          b.use Vagrant::Action::Builtin::Call, Vagrant::Action::Builtin::IsState, :not_created do |env, b2|
+            if env[:result]
+              raise Vagrant::Errors::VMNotCreatedError
+            else
+              b2.use Action::PrepareEnvironment
+              b2.use Action::SnapshotRestore
+            end
+          end
+        end
+      end
+
+      # Define action middleware for 'vagrant snapshot delete'
+      def action_snapshot_delete
+        Vagrant::Action::Builder.new.tap do |b|
+          b.use Vagrant::Action::Builtin::ConfigValidate
+          b.use Action::PrepareEnvironment
+          b.use Action::SnapshotDelete
         end
       end
     end

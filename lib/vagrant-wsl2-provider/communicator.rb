@@ -18,14 +18,12 @@ module VagrantPlugins
         @machine.state.id != :not_created
       end
 
-      def execute(command, opts = {})
+      def execute(command, opts = {}, &block)
         # Execute command in WSL2 distribution as vagrant user
         distribution_name = @machine.id
         return 1 if distribution_name.nil?
 
-        # puts "*** WSL2 EXECUTE: #{command} ***"  # Debug all commands
         @logger.debug("Executing command in WSL2: #{command}")
-        # puts "DEBUG: Executing WSL2 command: #{command}" if ENV['VAGRANT_DEBUG']
 
         # Set up IO for real-time output
         io_stdin = opts[:stdin] if opts[:stdin]
@@ -40,13 +38,18 @@ module VagrantPlugins
           "bash", "-l", "-c", encoded_command,
           :notify => [:stdin, :stdout, :stderr]
         ) do |type, data|
+          # Call the block if provided (for SSH run command output)
+          if block_given?
+            block.call(type, data)
+          end
+
           case type
           when :stdout
             io_stdout.write(data) if io_stdout
-            puts data if !io_stdout
+            puts data if !io_stdout && !block_given?
           when :stderr
             io_stderr.write(data) if io_stderr
-            $stderr.puts data if !io_stderr
+            $stderr.puts data if !io_stderr && !block_given?
           end
         end
 

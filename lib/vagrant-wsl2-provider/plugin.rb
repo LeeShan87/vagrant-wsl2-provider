@@ -39,6 +39,26 @@ module VagrantPlugins
         Cap::ShellExpandGuestPath
       end
 
+      # Provider capabilities
+      provider_capability "wsl2", "snapshot_list" do
+        require_relative "cap/snapshot_list"
+        Cap::SnapshotList
+      end
+
+      provider_capability "wsl2", "snapshot_save" do
+        require_relative "cap/snapshot_save"
+        Cap::SnapshotSave
+      end
+
+      provider_capability "wsl2", "snapshot_restore" do
+        require_relative "cap/snapshot_restore"
+        Cap::SnapshotRestore
+      end
+
+      provider_capability "wsl2", "snapshot_delete" do
+        require_relative "cap/snapshot_delete"
+        Cap::SnapshotDelete
+      end
     end
   end
 end

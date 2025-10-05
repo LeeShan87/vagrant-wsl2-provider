@@ -8,9 +8,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Full snapshot support (save, restore, list, delete)
+- Support for `vagrant snapshot push/pop` commands
+- `vagrant ssh -c` command execution support
+- PowerShell-based integration test suite
 - Docker support and systemd enablement on distribution start
 - Comprehensive testing for various Linux distributions (AlmaLinux, Debian, Fedora, Ubuntu, Kali, openSUSE)
 - Configuration support for distribution name, version, memory, CPUs, and GUI
+
+### Features
+- Snapshots stored as `.tar` files in `.vagrant/machines/{name}/wsl2/snapshots/`
+- Complete distribution state preservation and restoration
+- Snapshot management through Vagrant provider capabilities
+- Direct command execution via `vagrant ssh -c` with proper output streaming
+- Automated integration tests for basic functionality and snapshots
 
 ## [0.1.0] - 2025-09-30
 
