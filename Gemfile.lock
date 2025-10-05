@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    vagrant-wsl2-provider (0.1.0)
+    vagrant-wsl2-provider (0.2.0)
 
 GEM
   remote: https://rubygems.org/

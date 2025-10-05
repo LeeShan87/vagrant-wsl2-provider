@@ -1,0 +1,40 @@
+---
+- name: Install Docker on openSUSE
+  hosts: all
+  become: yes
+  tasks:
+    - name: Install required packages
+      zypper:
+        name:
+          - ca-certificates
+          - curl
+          - iptables
+        state: present
+
+    - name: Install Docker
+      zypper:
+        name:
+          - docker
+        state: present
+
+    - name: Add vagrant user to docker group
+      user:
+        name: vagrant
+        groups: docker
+        append: yes
+
+    - name: Enable and start Docker service
+      systemd:
+        name: docker
+        enabled: yes
+        state: started
+        daemon_reload: yes
+
+    - name: Verify Docker is running
+      command: docker info
+      register: docker_info
+      changed_when: false
+
+    - name: Show Docker version
+      debug:
+        msg: "Docker is installed and running"

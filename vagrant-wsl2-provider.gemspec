@@ -17,6 +17,7 @@ Gem::Specification.new do |spec|
   spec.metadata["homepage_uri"] = spec.homepage
   spec.metadata["source_code_uri"] = spec.homepage
   spec.metadata["changelog_uri"] = "#{spec.homepage}/blob/main/CHANGELOG.md"
+  spec.metadata["bug_tracker_uri"] = "#{spec.homepage}/issues"
 
   # Specify which files should be added to the gem when it is released.
   spec.files = Dir["lib/**/*", "locales/**/*", "*.md", "*.txt", "LICENSE", "Rakefile", "Gemfile", "*.gemspec"]

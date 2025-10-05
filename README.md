@@ -107,6 +107,34 @@ wsl -l | Select-String -Pattern '\S' | ForEach-Object { $name = $_.Line -replace
 
 ## Known Issues
 
+### Per-Distribution CPU/Memory Limits Not Supported
+
+**WSL2 does not support per-distribution CPU and memory limits.**
+
+Reference: [Microsoft WSL Issue #8570](https://github.com/microsoft/WSL/issues/8570)
+
+The `memory` and `cpus` configuration options in the Vagrantfile currently do nothing because:
+- CPU/memory limits in WSL2 are configured globally in `%USERPROFILE%\.wslconfig`
+- These limits apply to **ALL** WSL2 distributions simultaneously
+- Microsoft has not implemented per-distribution resource limits
+
+```ruby
+config.vm.provider "wsl2" do |wsl|
+  wsl.memory = 2048  # Currently has no effect
+  wsl.cpus = 2       # Currently has no effect
+end
+```
+
+**Workaround**: Manually configure global limits in `%USERPROFILE%\.wslconfig`:
+
+```ini
+[wsl2]
+memory=4GB
+processors=2
+```
+
+This affects all WSL2 distributions including Docker Desktop and other Vagrant VMs.
+
 ### Legacy WSL Distributions
 
 Some WSL distributions use the legacy registration system and are not fully supported:
