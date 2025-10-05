@@ -5,6 +5,7 @@ A Vagrant provider plugin for managing WSL2 distributions on Windows.
 ## Features
 
 - Create and manage WSL2 distributions through Vagrant
+- Full snapshot support (save, restore, list, delete)
 - Support for WSL2 configuration (memory, CPU, version)
 - Integration with Vagrant's standard workflow
 - Cross-platform compatible (Windows-focused)
@@ -50,6 +51,64 @@ Then run:
 vagrant up --provider=wsl2
 ```
 
+## Supported Commands
+
+### Standard Vagrant Commands
+- `vagrant up` - Create and start the WSL2 distribution
+- `vagrant halt` - Stop the WSL2 distribution
+- `vagrant destroy` - Remove the WSL2 distribution
+- `vagrant ssh` - Connect to the distribution (interactive shell)
+- `vagrant ssh -c "command"` - Execute a single command and return output
+- `vagrant provision` - Run provisioners
+- `vagrant reload` - Restart the distribution
+
+**Example:**
+```bash
+vagrant ssh -c "uname -a"
+vagrant ssh -c "cat /etc/os-release"
+```
+
+### Snapshot Management
+
+The WSL2 provider fully supports Vagrant's snapshot functionality:
+
+```bash
+# List all snapshots
+vagrant snapshot list
+
+# Save a snapshot
+vagrant snapshot save <name>
+
+# Restore a snapshot
+vagrant snapshot restore <name>
+
+# Delete a snapshot
+vagrant snapshot delete <name>
+
+# Quick save (auto-generated name)
+vagrant snapshot push
+
+# Quick restore last pushed snapshot
+vagrant snapshot pop
+```
+
+**Example workflow:**
+```bash
+# Save current state before experimenting
+vagrant snapshot save clean-install
+
+# Make changes, install packages, etc.
+# ...
+
+# Restore to clean state if something breaks
+vagrant snapshot restore clean-install
+
+# Delete snapshot when no longer needed
+vagrant snapshot delete clean-install
+```
+
+Snapshots are stored as `.tar` files in `.vagrant/machines/{name}/wsl2/snapshots/` and contain the complete distribution state.
+
 ## Configuration
 
 ### Provider Options
@@ -68,12 +127,40 @@ vagrant up --provider=wsl2
 
 ## Development
 
+### Setup
+
 After checking out the repo, run:
 
 ```bash
 bundle install
-rake spec  # Run tests
+rake install_local  # Build and install plugin
 ```
+
+### Testing
+
+Integration tests are provided using PowerShell scripts:
+
+```bash
+# Run all integration tests
+rake test
+
+# Run individual tests
+rake test_basic
+rake test_snapshot
+```
+
+See [test/integration/README.md](test/integration/README.md) for more details.
+
+### Examples
+
+Example configurations are in the `examples/` directory:
+- `basic/` - Minimal configuration
+- `snapshot/` - Snapshot functionality demo
+- `provisioners/` - Multiple provisioner examples
+- `docker-test/` - Docker with systemd
+- `test-distros/` - Various Linux distributions
+
+See [examples/README.md](examples/README.md) for usage.
 
 ### Development with Live Reload
 

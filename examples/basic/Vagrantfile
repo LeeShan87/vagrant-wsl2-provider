@@ -1,0 +1,13 @@
+# Basic Vagrant WSL2 Provider Example
+#
+# This is the simplest possible configuration for using the WSL2 provider.
+# Run: vagrant up --provider=wsl2
+
+Vagrant.configure("2") do |config|
+  config.vm.box = "Ubuntu-24.04"
+
+  config.vm.provider "wsl2" do |wsl|
+    wsl.distribution_name = "vagrant-wsl2-basic"
+    wsl.version = 2
+  end
+end

@@ -94,6 +94,74 @@ module VagrantPlugins
         start
       end
 
+      # Get the path where snapshots should be stored
+      def snapshots_path
+        path = @machine.data_dir.join("snapshots")
+        FileUtils.mkdir_p(path) unless File.exist?(path)
+        path.to_s
+      end
+
+      # Get the path for a specific snapshot
+      def snapshot_path(snapshot_name)
+        File.join(snapshots_path, "#{snapshot_name}.tar")
+      end
+
+      # List all snapshots
+      def list_snapshots
+        return [] unless File.exist?(snapshots_path)
+
+        Dir.glob(File.join(snapshots_path, "*.tar")).map do |path|
+          File.basename(path, ".tar")
+        end.sort
+      end
+
+      # Save a snapshot
+      def save_snapshot(snapshot_name)
+        snapshot_file = snapshot_path(snapshot_name)
+
+        # Export the current distribution to a tar file
+        @machine.ui.info "Saving snapshot: #{snapshot_name}"
+        execute("wsl", "--export", @config.distribution_name, snapshot_file)
+
+        @machine.ui.success "Snapshot saved: #{snapshot_name}"
+      end
+
+      # Restore a snapshot
+      def restore_snapshot(snapshot_name)
+        snapshot_file = snapshot_path(snapshot_name)
+
+        unless File.exist?(snapshot_file)
+          raise Errors::SnapshotNotFound, name: snapshot_name
+        end
+
+        @machine.ui.info "Restoring snapshot: #{snapshot_name}"
+
+        # First, unregister the current distribution
+        halt if state == :running
+        execute("wsl", "--unregister", @config.distribution_name)
+
+        # Import the snapshot as the distribution
+        dist_dir = distribution_path
+        FileUtils.mkdir_p(dist_dir) unless File.exist?(dist_dir)
+
+        execute("wsl", "--import", @config.distribution_name,
+                dist_dir, snapshot_file, "--version", @config.version.to_s)
+
+        @machine.ui.success "Snapshot restored: #{snapshot_name}"
+      end
+
+      # Delete a snapshot
+      def delete_snapshot(snapshot_name)
+        snapshot_file = snapshot_path(snapshot_name)
+
+        unless File.exist?(snapshot_file)
+          raise Errors::SnapshotNotFound, name: snapshot_name
+        end
+
+        FileUtils.rm(snapshot_file)
+        @machine.ui.success "Snapshot deleted: #{snapshot_name}"
+      end
+
       private
 
       # Generate wsl.conf content from configuration
@@ -116,10 +184,6 @@ module VagrantPlugins
 
         content.join("\n")
       end
-
-      public
-
-      private
 
       # Execute a Windows command
       def execute(*args)

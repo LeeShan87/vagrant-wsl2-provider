@@ -30,3 +30,4 @@ en:
 
         This provider requires clean, reproducible environments and cannot proceed with
         potentially contaminated distributions.
+      snapshot_not_found: "Snapshot '%{name}' not found"

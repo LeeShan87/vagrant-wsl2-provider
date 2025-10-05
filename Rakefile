@@ -1,9 +1,6 @@
 require "bundler/gem_tasks"
-require "rspec/core/rake_task"
 
-RSpec::Core::RakeTask.new(:spec)
-
-task :default => :spec
+task :default => :test
 
 desc "Build and install the plugin locally"
 task :install_local do
@@ -14,4 +11,19 @@ end
 desc "Uninstall the plugin"
 task :uninstall do
   sh "vagrant plugin uninstall vagrant-wsl2-provider"
+end
+
+desc "Run all integration tests"
+task :test do
+  sh "powershell -File test/integration/run_all_tests.ps1"
+end
+
+desc "Run basic integration test"
+task :test_basic do
+  sh "powershell -File test/integration/test_basic.ps1"
+end
+
+desc "Run snapshot integration test"
+task :test_snapshot do
+  sh "powershell -File test/integration/test_snapshot.ps1"
 end
