@@ -1,15 +1,15 @@
 ---
-- name: Install Docker (Moby) with systemd support
+- name: Install Docker (Moby) on Debian-based systems
   hosts: all
   become: yes
   tasks:
     - name: Update package cache
-      package:
+      apt:
         update_cache: yes
-      ignore_errors: yes
+        cache_valid_time: 3600
 
     - name: Install required packages
-      package:
+      apt:
         name:
           - ca-certificates
           - curl
@@ -17,65 +17,59 @@
           - iptables
         state: present
 
-    - name: Add Microsoft GPG key (Debian/Ubuntu)
-      shell: |
-        curl -fsSL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor -o /usr/share/keyrings/microsoft-prod.gpg
-      when: ansible_os_family == "Debian"
+    - name: Check if Ubuntu
+      shell: grep -q Ubuntu /etc/os-release && echo "ubuntu" || echo "debian"
+      register: distro_type
+      changed_when: false
 
-    - name: Add Microsoft Moby repository (Debian/Ubuntu)
+    - name: Add Microsoft GPG key (Ubuntu only)
+      shell: |
+        curl -fsSL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor --batch | tee /usr/share/keyrings/microsoft-prod.gpg > /dev/null
+      args:
+        creates: /usr/share/keyrings/microsoft-prod.gpg
+      when: distro_type.stdout == "ubuntu"
+
+    - name: Add Microsoft Moby repository (Ubuntu only)
       shell: |
         curl -fsSL https://packages.microsoft.com/config/ubuntu/$(lsb_release -rs)/prod.list | tee /etc/apt/sources.list.d/microsoft-prod.list
-      when: ansible_os_family == "Debian"
+      args:
+        creates: /etc/apt/sources.list.d/microsoft-prod.list
+      when: distro_type.stdout == "ubuntu"
 
     - name: Update package cache after adding repository
-      package:
+      apt:
         update_cache: yes
-      ignore_errors: yes
 
-    - name: Install Moby Docker (Debian/Ubuntu)
-      package:
+    - name: Install Moby Docker (Ubuntu)
+      apt:
         name:
           - moby-engine
           - moby-cli
           - moby-containerd
           - moby-runc
         state: present
-      when: ansible_os_family == "Debian"
+      when: distro_type.stdout == "ubuntu"
 
-    - name: Install Docker (RedHat/AlmaLinux/Fedora)
-      package:
+    - name: Install Docker from default repos (Debian/Kali)
+      apt:
         name:
-          - docker
+          - docker.io
+          - containerd
         state: present
-      when: ansible_os_family == "RedHat"
+      when: distro_type.stdout == "debian"
 
-    - name: Install Docker (openSUSE)
-      package:
-        name:
-          - docker
-        state: present
-      when: ansible_os_family == "Suse"
-
-    - name: Ensure containerd is enabled and started (Debian/Ubuntu)
+    - name: Ensure containerd is enabled and started
       systemd:
         name: containerd
         enabled: yes
         state: started
         daemon_reload: yes
-      when: ansible_os_family == "Debian"
-
-    - name: Check if docker group exists
-      command: getent group docker
-      register: docker_group_check
-      changed_when: false
-      failed_when: false
 
     - name: Add vagrant user to docker group
       user:
         name: vagrant
         groups: docker
         append: yes
-      when: docker_group_check.rc == 0
 
     - name: Enable and start Docker service
       systemd:
@@ -83,10 +77,6 @@
         enabled: yes
         state: started
         daemon_reload: yes
-
-    - name: Wait for Docker to be ready
-      wait_for:
-        timeout: 10
 
     - name: Verify Docker is running
       command: docker info
