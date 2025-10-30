@@ -261,6 +261,23 @@ The following distributions are fully tested and working with shell/file/ansible
 - Kali-Linux
 - openSUSE-Tumbleweed
 
+## Roadmap
+
+### v0.3 - Data Disk Support
+- Mount VirtualBox data disks in WSL2
+- VHD/VMDK to WSL2 format conversion
+- Support for development backup workflows
+
+### v0.4 - Legacy Distribution Support
+- Non-interactive setup for Ubuntu 20.04, 22.04
+- Support for Oracle Linux distributions
+- Improved compatibility with legacy WSL registration system
+
+### v0.5 - Network Configuration
+- Fixed network support for multiple WSL2 distributions
+- Network isolation and custom IP configuration
+- Port forwarding enhancements
+
 ## Contributing
 
 Bug reports and pull requests are welcome on GitHub.

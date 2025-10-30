@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2025-10-30
+
 ### Added
 - Full snapshot support (save, restore, list, delete)
 - Support for `vagrant snapshot push/pop` commands
@@ -14,7 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - PowerShell-based integration test suite
 - Docker support and systemd enablement on distribution start
 - Comprehensive testing for various Linux distributions (AlmaLinux, Debian, Fedora, Ubuntu, Kali, openSUSE)
-- Configuration support for distribution name, version, memory, CPUs, and GUI
+- wsl.conf configuration support
 
 ### Features
 - Snapshots stored as `.tar` files in `.vagrant/machines/{name}/wsl2/snapshots/`
@@ -22,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Snapshot management through Vagrant provider capabilities
 - Direct command execution via `vagrant ssh -c` with proper output streaming
 - Automated integration tests for basic functionality and snapshots
+- Docker-in-WSL2 workflows with systemd support
 
 ## [0.1.0] - 2025-09-30
 
@@ -45,5 +48,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Some SUSE Enterprise distributions have guest detection issues
 - AlmaLinux-10 and archlinux have provisioning limitations
 
-[unreleased]: https://github.com/LeeShan87/vagrant-wsl2-provider/compare/v0.1.0...HEAD
+[unreleased]: https://github.com/LeeShan87/vagrant-wsl2-provider/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/LeeShan87/vagrant-wsl2-provider/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/LeeShan87/vagrant-wsl2-provider/releases/tag/v0.1.0
