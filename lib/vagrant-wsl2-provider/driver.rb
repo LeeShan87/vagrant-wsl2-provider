@@ -162,6 +162,184 @@ module VagrantPlugins
         @machine.ui.success "Snapshot deleted: #{snapshot_name}"
       end
 
+      # Data disk management
+
+      # Get the default path for a data disk
+      def default_data_disk_path(index, format = 'vhdx')
+        @machine.data_dir.join("data-disk-#{index}.#{format}").to_s
+      end
+
+      # Create a VHD/VHDX file using PowerShell
+      def create_data_disk(path, size_gb, format = 'vhdx')
+        return if File.exist?(path)
+
+        @machine.ui.info "Creating #{format.upcase} data disk: #{File.basename(path)} (#{size_gb}GB)"
+
+        size_bytes = size_gb * 1024 * 1024 * 1024
+
+        # Use Windows-style path for PowerShell
+        windows_path = path.gsub('/', '\\')
+
+        # Ensure parent directory exists
+        parent_dir = File.dirname(path)
+        FileUtils.mkdir_p(parent_dir) unless File.exist?(parent_dir)
+
+        # PowerShell command to create VHD/VHDX
+        # The format is determined by the file extension (.vhd or .vhdx)
+        # Ensure the path has the correct extension
+        if !windows_path.downcase.end_with?('.vhd') && !windows_path.downcase.end_with?('.vhdx')
+          windows_path += ".#{format.downcase}"
+        end
+
+        ps_command = "New-VHD -Path '#{windows_path}' -SizeBytes #{size_bytes} -Dynamic"
+
+        result = Vagrant::Util::Subprocess.execute(
+          "powershell", "-NoProfile", "-ExecutionPolicy", "Bypass",
+          "-Command", ps_command
+        )
+
+        if result.exit_code != 0
+          error_msg = result.stderr
+          # Check if it's a permission error
+          if error_msg.include?("permission") || error_msg.include?("administrator")
+            error_msg += "\n\nAdministrator privileges are required to create VHD files."
+            error_msg += "\nPlease run Vagrant/PowerShell as Administrator."
+          end
+
+          raise Errors::DataDiskCreateFailed,
+                path: path,
+                stderr: error_msg
+        end
+
+        @machine.ui.success "Data disk created: #{File.basename(path)}"
+      end
+
+      # Mount all configured data disks
+      def mount_data_disks
+        return unless @config.data_disks&.any?
+
+        # Check if data disks are already mounted in the distribution
+        if data_disk_already_mounted?(@config.data_disks.count)
+          @machine.ui.info "Data disks already mounted (#{@config.data_disks.count} disks found)"
+          return
+        end
+
+        @machine.ui.info "Mounting data disks..."
+
+        @config.data_disks.each_with_index do |disk_config, index|
+          format = disk_config.format || 'vhdx'
+
+          # Determine VHD path
+          vhd_path = disk_config.path || default_data_disk_path(index, format)
+
+          # Create VHD if it doesn't exist and size is specified
+          if !File.exist?(vhd_path) && disk_config.size
+            create_data_disk(vhd_path, disk_config.size, format)
+          end
+
+          # Mount the VHD
+          mount_data_disk(vhd_path, index)
+        end
+      end
+
+      # Check if data disk is already accessible in the distribution
+      def data_disk_already_mounted?(expected_disk_count)
+        return false unless state == :running
+
+        # Count block devices that could be data disks (sde and later)
+        # Use wsl -d to run command inside the distribution
+        result = Vagrant::Util::Subprocess.execute(
+          "wsl", "-d", @config.distribution_name, "--", "lsblk", "-nd", "-o", "NAME"
+        )
+        return false if result.exit_code != 0
+
+        # Count devices sde and later
+        device_count = result.stdout.lines.count { |line| line.match?(/^sd[e-z]$/) }
+
+        # If we have at least as many devices as expected, disks are already mounted
+        device_count >= expected_disk_count
+      end
+
+      # Mount a single data disk
+      def mount_data_disk(vhd_path, index)
+        unless File.exist?(vhd_path)
+          raise Errors::DataDiskNotFound, path: vhd_path
+        end
+
+        @machine.ui.info "Mounting data disk: #{File.basename(vhd_path)}"
+
+        # Use Windows-style path for wsl command
+        windows_path = vhd_path.gsub('/', '\\')
+
+        # Mount the VHD using wsl --mount
+        # --bare: Don't mount to a specific path automatically
+        result = Vagrant::Util::Subprocess.execute(
+          "wsl", "--mount", "--vhd", windows_path, "--bare"
+        )
+
+        # Note: exit code 0 means success
+        # If already mounted, wsl returns an error but we can ignore it
+        if result.exit_code != 0
+          error_msg = result.stderr
+
+          # Check if already mounted (this is not a fatal error)
+          if error_msg.include?("already") || error_msg.include?("attached")
+            @machine.ui.warn "Data disk already mounted: #{File.basename(vhd_path)}"
+          else
+            # Check if it's a permission error
+            if error_msg.empty? || error_msg.include?("access") || error_msg.include?("permission") || error_msg.include?("administrator")
+              error_msg = "Failed to mount VHD. Administrator privileges are required.\n"
+              error_msg += "Please run Vagrant/PowerShell as Administrator to use data disk features.\n"
+              error_msg += "Original error: #{result.stderr}" unless result.stderr.empty?
+            end
+
+            raise Errors::DataDiskMountFailed,
+                  path: vhd_path,
+                  stderr: error_msg
+          end
+        else
+          @machine.ui.success "Data disk mounted: #{File.basename(vhd_path)}"
+        end
+      end
+
+      # Unmount all configured data disks
+      def unmount_data_disks
+        return unless @config.data_disks&.any?
+
+        @machine.ui.info "Unmounting data disks..."
+
+        @config.data_disks.each_with_index do |disk_config, index|
+          format = disk_config.format || 'vhdx'
+          vhd_path = disk_config.path || default_data_disk_path(index, format)
+          unmount_data_disk(vhd_path) if File.exist?(vhd_path)
+        end
+      end
+
+      # Unmount a single data disk
+      def unmount_data_disk(vhd_path)
+        @machine.ui.info "Unmounting data disk: #{File.basename(vhd_path)}"
+
+        # Use Windows-style path for wsl command
+        windows_path = vhd_path.gsub('/', '\\')
+
+        result = Vagrant::Util::Subprocess.execute(
+          "wsl", "--unmount", windows_path
+        )
+
+        if result.exit_code != 0
+          # Check if not mounted (this is not a fatal error)
+          if result.stderr.include?("not") || result.stderr.include?("attached")
+            @machine.ui.warn "Data disk not mounted: #{File.basename(vhd_path)}"
+          else
+            raise Errors::DataDiskUnmountFailed,
+                  path: vhd_path,
+                  stderr: result.stderr
+          end
+        else
+          @machine.ui.success "Data disk unmounted: #{File.basename(vhd_path)}"
+        end
+      end
+
       private
 
       # Generate wsl.conf content from configuration

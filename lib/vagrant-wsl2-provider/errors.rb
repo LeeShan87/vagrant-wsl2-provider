@@ -50,6 +50,22 @@ module VagrantPlugins
       class SnapshotNotFound < WSL2Error
         error_key(:snapshot_not_found)
       end
+
+      class DataDiskCreateFailed < WSL2Error
+        error_key(:data_disk_create_failed)
+      end
+
+      class DataDiskNotFound < WSL2Error
+        error_key(:data_disk_not_found)
+      end
+
+      class DataDiskMountFailed < WSL2Error
+        error_key(:data_disk_mount_failed)
+      end
+
+      class DataDiskUnmountFailed < WSL2Error
+        error_key(:data_disk_unmount_failed)
+      end
     end
   end
 end

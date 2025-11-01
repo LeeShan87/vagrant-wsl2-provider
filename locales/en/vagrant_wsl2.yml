@@ -31,3 +31,7 @@ en:
         This provider requires clean, reproducible environments and cannot proceed with
         potentially contaminated distributions.
       snapshot_not_found: "Snapshot '%{name}' not found"
+      data_disk_create_failed: "Failed to create data disk at '%{path}': %{stderr}"
+      data_disk_not_found: "Data disk not found at '%{path}'"
+      data_disk_mount_failed: "Failed to mount data disk '%{path}': %{stderr}"
+      data_disk_unmount_failed: "Failed to unmount data disk '%{path}': %{stderr}"

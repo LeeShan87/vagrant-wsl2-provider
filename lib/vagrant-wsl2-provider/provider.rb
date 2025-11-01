@@ -17,6 +17,8 @@ module VagrantPlugins
       autoload :SnapshotSave, File.expand_path("../action/snapshot_save", __FILE__)
       autoload :SnapshotRestore, File.expand_path("../action/snapshot_restore", __FILE__)
       autoload :SnapshotDelete, File.expand_path("../action/snapshot_delete", __FILE__)
+      autoload :MountDataDisks, File.expand_path("../action/mount_data_disks", __FILE__)
+      autoload :UnmountDataDisks, File.expand_path("../action/unmount_data_disks", __FILE__)
     end
     class Provider < Vagrant.plugin("2", :provider)
       def initialize(machine)
@@ -109,6 +111,7 @@ module VagrantPlugins
               b2.use Action::PrepareEnvironment
               b2.use Action::Create
               b2.use Action::Start
+              b2.use Action::MountDataDisks
               b2.use Action::ShareFolders
               b2.use Vagrant::Action::Builtin::Provision
             else
@@ -118,6 +121,7 @@ module VagrantPlugins
                   b3.use Action::Start
                 end
               end
+              b2.use Action::MountDataDisks
               b2.use Action::ShareFolders
               b2.use Vagrant::Action::Builtin::Provision
             end
@@ -145,6 +149,7 @@ module VagrantPlugins
           b.use Vagrant::Action::Builtin::Call, Vagrant::Action::Builtin::IsState, :not_created do |env, b2|
             unless env[:result]
               b2.use Action::PrepareEnvironment
+              b2.use Action::UnmountDataDisks
               b2.use Action::Destroy
             end
           end

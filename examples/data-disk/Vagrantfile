@@ -1,0 +1,190 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+# IMPORTANT: Administrator privileges are required for data disk functionality
+# VHD creation (New-VHD) and WSL disk mounting (wsl --mount) require
+# running Vagrant/PowerShell as Administrator
+
+Vagrant.configure("2") do |config|
+  config.vm.box = "Ubuntu-24.04"
+
+  # Create persistent test data disk before VM starts
+  config.trigger.before :up do |trigger|
+    trigger.info = "Creating persistent test data disk"
+    trigger.ruby do |env, machine|
+      # Path for persistent disk (outside .vagrant directory)
+      persistent_disk_path = File.expand_path("../test-data-disk.vhdx", __FILE__)
+
+      unless File.exist?(persistent_disk_path)
+        require 'fileutils'
+
+        # Use Windows-style path for PowerShell
+        windows_path = persistent_disk_path.gsub('/', '\\')
+
+        puts "Creating persistent test disk at #{persistent_disk_path}..."
+
+        # Create 20GB VHDX for testing persistence
+        ps_command = "New-VHD -Path '#{windows_path}' -SizeBytes 21474836480 -Dynamic"
+
+        result = system("powershell -NoProfile -ExecutionPolicy Bypass -Command \"#{ps_command}\"")
+
+        if result
+          puts "Persistent test disk created successfully"
+        else
+          puts "Warning: Failed to create persistent test disk (may require admin rights)"
+        end
+      end
+    end
+  end
+
+  config.vm.provider "wsl2" do |wsl|
+    wsl.distribution_name = "vagrant-data-disk-example"
+    wsl.memory = 2048
+    wsl.cpus = 2
+
+    # Primary data disk - automatically created VHDX (deleted on destroy)
+    wsl.data_disk do |disk|
+      disk.size = 10  # 10GB
+      disk.format = 'vhdx'
+    end
+
+    # Secondary data disk - VHD format (for VirtualBox compatibility, deleted on destroy)
+    wsl.data_disk do |disk|
+      disk.size = 5  # 5GB
+      disk.format = 'vhd'
+    end
+
+    # Persistent test disk (survives vagrant destroy)
+    wsl.data_disk do |disk|
+      disk.path = File.expand_path("../test-data-disk.vhdx", __FILE__)
+    end
+  end
+
+  # Provision: Setup and mount data disks
+  config.vm.provision "shell", inline: <<-SHELL
+    echo "Setting up data disks..."
+
+    # Install parted if not available
+    if ! command -v parted &> /dev/null; then
+      echo "Installing parted..."
+      sudo apt-get update -qq
+      sudo apt-get install -y parted
+    fi
+
+    # Function to setup a data disk
+    setup_disk() {
+      local device=$1
+      local mount_point=$2
+
+      echo "Setting up $device at $mount_point"
+
+      # Create mount point
+      sudo mkdir -p "$mount_point"
+
+      # Check if already mounted
+      if mount | grep -q "$mount_point"; then
+        echo "Already mounted: $mount_point"
+        return 0
+      fi
+
+      # Check if disk is formatted
+      if ! sudo blkid ${device}1 > /dev/null 2>&1; then
+        echo "Formatting $device..."
+
+        # Create GPT partition table
+        sudo parted -s "$device" mklabel gpt
+
+        # Create partition using all available space
+        sudo parted -s "$device" mkpart primary ext4 0% 100%
+
+        # Wait a moment for partition to be recognized
+        sleep 2
+
+        # Format with ext4 filesystem
+        sudo mkfs.ext4 -F "${device}1"
+      fi
+
+      # Mount the disk
+      sudo mount "${device}1" "$mount_point"
+
+      # Add to fstab for automatic mounting on boot (using UUID)
+      local uuid=$(sudo blkid -s UUID -o value ${device}1)
+      if ! grep -q "$uuid" /etc/fstab; then
+        echo "UUID=$uuid $mount_point ext4 defaults 0 2" | sudo tee -a /etc/fstab
+      fi
+
+      # Set ownership to vagrant user
+      sudo chown -R vagrant:vagrant "$mount_point"
+
+      echo "Disk $device setup complete at $mount_point"
+    }
+
+    # Find and setup data disks
+    # Only process unmounted, unused block devices
+    # Limit to expected number of data disks (3 in this example)
+    EXPECTED_DISKS=3
+    disk_count=0
+    for device in /dev/sd[e-z]; do
+      # Stop if we've found all expected disks
+      if [ $disk_count -ge $EXPECTED_DISKS ]; then
+        break
+      fi
+
+      # Check if device exists
+      if [ ! -b "$device" ]; then
+        continue
+      fi
+
+      # Skip if device is already mounted
+      if mount | grep -q "^${device}"; then
+        continue
+      fi
+
+      # Skip swap devices
+      if swapon --show | grep -q "$device"; then
+        continue
+      fi
+
+      # Skip devices with mount points (system disks)
+      if lsblk -no MOUNTPOINT "$device" 2>/dev/null | grep -qE '.'; then
+        continue
+      fi
+
+      disk_count=$((disk_count + 1))
+      mount_point="/mnt/data${disk_count}"
+      setup_disk "$device" "$mount_point"
+    done
+
+    if [ $disk_count -eq 0 ]; then
+      echo "Warning: No data disks found!"
+    else
+      echo ""
+      echo "Data disks setup complete!"
+      echo "Found $disk_count data disk(s)"
+      echo ""
+      echo "Mounted disks:"
+      df -h | grep /mnt/data || echo "No data disks mounted"
+      echo ""
+      echo "Block devices:"
+      lsblk
+    fi
+  SHELL
+
+  # Optionally, create a test file on the data disk
+  config.vm.provision "shell", inline: <<-SHELL
+    echo "Creating test files on data disks..."
+
+    for mount_point in /mnt/data*; do
+      if [ -d "$mount_point" ]; then
+        echo "Test data on $(basename $mount_point)" | sudo tee "$mount_point/test.txt"
+        sudo chown vagrant:vagrant "$mount_point/test.txt"
+        echo "Created test file: $mount_point/test.txt"
+        ls -la $mount_point/
+      fi
+    done
+
+    echo ""
+    echo "You can now use the data disks at /mnt/data1, /mnt/data2, etc."
+    echo "These disks will persist across 'vagrant destroy' and 'vagrant up'"
+  SHELL
+end
