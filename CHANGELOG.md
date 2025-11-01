@@ -7,6 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Persistent data disk support with VHD/VHDX formats
+- Multiple data disk support per VM
+- Automatic VHD/VHDX creation using PowerShell New-VHD
+- Support for both VHD (VirtualBox-compatible) and VHDX formats
+- Data disk mounting using `wsl --mount --vhd`
+- Automatic unmounting on VM destroy to prevent file locks
+- Integration test for data disk functionality
+- Example configuration in `examples/data-disk/`
+
+### Features
+- Configure data disks using `data_disk` block in Vagrantfile
+- Create new VHD/VHDX files with specified size
+- Attach existing VHD/VHDX files from other providers (e.g., VirtualBox)
+- Data persists across `vagrant destroy` and `vagrant up` cycles
+- Automatic partitioning, formatting, and mounting via provisioning
+- Support for custom disk paths and formats
+
+### Configuration
+```ruby
+wsl.data_disk do |disk|
+  disk.size = 100        # Size in GB (for new disks)
+  disk.format = 'vhdx'   # 'vhd' or 'vhdx'
+  disk.path = 'path'     # Optional: use existing disk
+end
+```
+
+### Requirements
+- **Administrator privileges required**: VHD creation (`New-VHD`) and WSL disk mounting (`wsl --mount`) require running Vagrant as Administrator
+- Windows 10 Build 20211+ or Windows 11 for `wsl --mount --vhd` support
+
 ## [0.2.0] - 2025-10-30
 
 ### Added

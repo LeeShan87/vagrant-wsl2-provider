@@ -25,6 +25,46 @@ module VagrantPlugins
       end
     end
 
+    class DataDiskConfig
+      attr_accessor :path
+      attr_accessor :size        # Size in GB (only for new VHD creation)
+      attr_accessor :format      # 'vhd' or 'vhdx'
+      attr_accessor :mount_point # Where to mount in WSL (e.g., '/mnt/data')
+
+      def initialize
+        @path = nil
+        @size = nil
+        @format = 'vhdx'
+        @mount_point = nil
+      end
+
+      def validate
+        errors = []
+
+        # Either path or size must be specified
+        if @path.nil? && @size.nil?
+          errors << "Data disk must have either 'path' (existing VHD) or 'size' (create new VHD)"
+        end
+
+        # Validate format
+        if @format && !['vhd', 'vhdx'].include?(@format.downcase)
+          errors << "Data disk format must be 'vhd' or 'vhdx'"
+        end
+
+        # Validate path extension if provided
+        if @path && !['.vhd', '.vhdx'].include?(File.extname(@path).downcase)
+          errors << "Data disk path must end with .vhd or .vhdx"
+        end
+
+        # Validate size if provided
+        if @size && (@size < 1 || @size > 16384)
+          errors << "Data disk size must be between 1GB and 16TB (16384GB)"
+        end
+
+        errors
+      end
+    end
+
     class Config < Vagrant.plugin("2", :config)
       # WSL2 distribution name
       attr_accessor :distribution_name
@@ -46,6 +86,9 @@ module VagrantPlugins
 
       # Enable GUI support (WSLg)
       attr_accessor :gui_support
+
+      # Data disks configuration
+      attr_reader :data_disks
 
       # wsl.conf configuration
       attr_reader :wsl_conf
@@ -83,6 +126,15 @@ module VagrantPlugins
         @wsl_conf.user.default
       end
 
+      # Define a data disk configuration
+      def data_disk(&block)
+        @data_disks ||= []
+        disk = DataDiskConfig.new
+        disk.instance_eval(&block) if block_given?
+        @data_disks << disk
+        disk
+      end
+
       def initialize
         @distribution_name = UNSET_VALUE
         @version = UNSET_VALUE
@@ -91,6 +143,7 @@ module VagrantPlugins
         @kernel_command_line = UNSET_VALUE
         @swap = UNSET_VALUE
         @gui_support = UNSET_VALUE
+        @data_disks = []
         @wsl_conf = WslConf.new
       end
 
@@ -125,6 +178,16 @@ module VagrantPlugins
         # Validate CPU count
         if @cpus && (@cpus < 1 || @cpus > 32)
           errors << "CPU count must be between 1 and 32"
+        end
+
+        # Validate data disks
+        if @data_disks && @data_disks.any?
+          @data_disks.each_with_index do |disk, index|
+            disk_errors = disk.validate
+            disk_errors.each do |error|
+              errors << "Data disk #{index + 1}: #{error}"
+            end
+          end
         end
 
         { "WSL2 Provider" => errors }

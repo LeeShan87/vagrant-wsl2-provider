@@ -27,3 +27,8 @@ desc "Run snapshot integration test"
 task :test_snapshot do
   sh "powershell -File test/integration/test_snapshot.ps1"
 end
+
+desc "Run data disk integration test"
+task :test_data_disk do
+  sh "powershell -File test/integration/test_data_disk.ps1"
+end
