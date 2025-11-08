@@ -192,6 +192,11 @@ wsl -l | Select-String -Pattern '\S' | ForEach-Object { $name = $_.Line -replace
 
 **Warning:** This removes ALL WSL distributions on your system. Use with caution!
 
+Remove vagrant prefixed distributions only:
+```powershell
+wsl -l | Select-String -Pattern '\S' | ForEach-Object { $name = $_.Line -replace '\*', '' -replace '\s*\(.*\)', '' -replace '\0', ''; if ($name.Trim() -like 'vagrant-*') { wsl --unregister $name.Trim() } }
+```
+
 ## Known Issues
 
 ### Per-Distribution CPU/Memory Limits Not Supported

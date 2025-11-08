@@ -7,6 +7,50 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Private network support with static IP configuration
+- Port forwarding support via Windows netsh portproxy
+- Multi-distribution network configuration (Ubuntu netplan + Debian systemd-networkd)
+- Administrator privilege checking for network operations
+- Windows routing setup for static IP access between VMs
+- Network configuration examples in `examples/networking/`
+- Multi-VM network example with detailed README in `examples/multi-vm-network/`
+- Integration test for networking functionality (requires admin privileges)
+
+### Features
+- Configure static IPs using `config.vm.network "private_network", ip: "192.168.33.10"`
+- Port forwarding using `config.vm.network "forwarded_port", guest: 80, host: 8080`
+- Automatic detection of netplan (Ubuntu) vs systemd-networkd (Debian/others)
+- Persistent network configuration across VM restarts
+- VM-to-VM communication via static IP addresses
+- Windows host access to VMs via port forwarding
+- Clear warnings when administrator privileges are missing
+- Public network (bridged mode) warning - not supported due to WSL2 architecture
+
+### Configuration
+```ruby
+# Static IP for inter-VM communication
+config.vm.network "private_network", ip: "192.168.33.10"
+
+# Port forwarding for Windows host access
+config.vm.network "forwarded_port", guest: 80, host: 8080
+config.vm.network "forwarded_port", guest: 443, host: 8443, host_ip: "127.0.0.1"
+```
+
+### WSL2 Networking Limitations
+- **Administrator privileges required**: Network configuration (routes, port forwarding) requires running Vagrant as Administrator
+- **Shared base IP**: All WSL2 distributions share the same underlying IP address due to single Hyper-V VM architecture
+- **Static IPs for inter-VM only**: Static IPs work for VM-to-VM communication but not for individual Windows host access
+- **Port forwarding for host access**: Use port forwarding to access VMs from Windows host
+- **Public network not supported**: Bridged networking unavailable due to WSL2's shared virtual switch
+
+### Technical Details
+- Network configuration written to `/etc/netplan/60-vagrant.yaml` (Ubuntu) or `/etc/systemd/network/10-eth0.network` (Debian)
+- Windows routes created using `route add` for static IP routing
+- Port forwarding configured using `netsh interface portproxy`
+- Routes and port forwards are non-persistent (removed on Windows restart)
+- Re-applied automatically on each `vagrant up`
+
 ## [0.3.0] - 2025-11-01
 
 ### Added

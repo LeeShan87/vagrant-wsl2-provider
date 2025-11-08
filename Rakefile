@@ -32,3 +32,13 @@ desc "Run data disk integration test"
 task :test_data_disk do
   sh "powershell -File test/integration/test_data_disk.ps1"
 end
+
+desc "Run networking integration test"
+task :test_networking do
+  sh "powershell -File test/integration/test_networking.ps1"
+end
+
+desc "Run multi-VM network integration test (TODO: not yet implemented)"
+task :test_multi_vm_network do
+  sh "powershell -File test/integration/test_multi_vm_network.ps1"
+end
