@@ -38,7 +38,7 @@ task :test_networking do
   sh "powershell -File test/integration/test_networking.ps1"
 end
 
-desc "Run multi-VM network integration test (TODO: not yet implemented)"
+desc "Run multi-VM network integration test"
 task :test_multi_vm_network do
   sh "powershell -File test/integration/test_multi_vm_network.ps1"
 end

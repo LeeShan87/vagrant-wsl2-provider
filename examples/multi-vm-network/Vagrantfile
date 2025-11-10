@@ -12,9 +12,13 @@ Vagrant.configure("2") do |config|
       wsl.hostname = "vagrant-net-vm1"
     end
     vm1.vm.network "private_network", ip: "192.168.50.10"
+    vm1.vm.provision "shell", inline: <<-SHELL
+      sudo apt update > /dev/null
+      sudo apt install -y net-tools netcat-traditional
+    SHELL
   end
 
-  # Second VM
+  # Second VM - Debian
   config.vm.define "vm2" do |vm2|
     vm2.vm.box = "Debian"
     vm2.vm.provider "wsl2" do |wsl|
@@ -26,5 +30,78 @@ Vagrant.configure("2") do |config|
       wsl.hostname = "vagrant-net-vm2"
     end
     vm2.vm.network "private_network", ip: "192.168.50.11"
+    vm2.vm.provision "shell", inline: <<-SHELL
+      sudo apt update > /dev/null
+      sudo apt install -y net-tools netcat-traditional curl
+    SHELL
+  end
+
+  # Third VM - AlmaLinux (NetworkManager)
+  config.vm.define "vm3", autostart: false do |vm3|
+    vm3.vm.box = "AlmaLinux-9"
+    vm3.vm.provider "wsl2" do |wsl|
+      wsl.distribution_name = "vagrant-net-vm3"
+      wsl.version = 2
+      wsl.systemd = true
+      wsl.memory = 512
+      wsl.cpus = 1
+      wsl.hostname = "vagrant-net-vm3"
+    end
+    vm3.vm.network "private_network", ip: "192.168.50.12"
+    vm3.vm.provision "shell", inline: <<-SHELL
+      sudo dnf install -y net-tools nmap-ncat
+    SHELL
+  end
+
+  # Fourth VM - Fedora (NetworkManager)
+  config.vm.define "vm4", autostart: false do |vm4|
+    vm4.vm.box = "FedoraLinux-42"
+    vm4.vm.provider "wsl2" do |wsl|
+      wsl.distribution_name = "vagrant-net-vm4"
+      wsl.version = 2
+      wsl.systemd = true
+      wsl.memory = 512
+      wsl.cpus = 1
+      wsl.hostname = "vagrant-net-vm4"
+    end
+    vm4.vm.network "private_network", ip: "192.168.50.13"
+    vm4.vm.provision "shell", inline: <<-SHELL
+      sudo dnf install -y net-tools nmap-ncat
+    SHELL
+  end
+
+  # Fifth VM - Kali Linux (NetworkManager)
+  config.vm.define "vm5", autostart: false do |vm5|
+    vm5.vm.box = "kali-linux"
+    vm5.vm.provider "wsl2" do |wsl|
+      wsl.distribution_name = "vagrant-net-vm5"
+      wsl.version = 2
+      wsl.systemd = true
+      wsl.memory = 512
+      wsl.cpus = 1
+      wsl.hostname = "vagrant-net-vm5"
+    end
+    vm5.vm.network "private_network", ip: "192.168.50.14"
+    vm5.vm.provision "shell", inline: <<-SHELL
+      sudo apt update > /dev/null
+      sudo apt install -y net-tools netcat-traditional
+    SHELL
+  end
+
+  # Sixth VM - openSUSE Tumbleweed (wicked)
+  config.vm.define "vm6", autostart: false do |vm6|
+    vm6.vm.box = "openSUSE-Tumbleweed"
+    vm6.vm.provider "wsl2" do |wsl|
+      wsl.distribution_name = "vagrant-net-vm6"
+      wsl.version = 2
+      wsl.systemd = true
+      wsl.memory = 512
+      wsl.cpus = 1
+      wsl.hostname = "vagrant-net-vm6"
+    end
+    vm6.vm.network "private_network", ip: "192.168.50.15"
+    vm6.vm.provision "shell", inline: <<-SHELL
+      sudo zypper install -y net-tools netcat-openbsd
+    SHELL
   end
 end

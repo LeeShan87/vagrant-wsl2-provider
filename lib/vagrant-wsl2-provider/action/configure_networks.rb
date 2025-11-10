@@ -107,84 +107,55 @@ module VagrantPlugins
         end
 
         def write_netplan_config
-          # Detect if netplan is available (Ubuntu)
-          has_netplan = @machine.communicate.test("command -v netplan")
-
-          if has_netplan
-            write_ubuntu_netplan_config
-          else
-            write_systemd_networkd_config
-          end
+          # Universal solution for all distros - systemd service
+          # No need to detect distro or network manager, network-online.target works everywhere
+          write_systemd_static_ip_service
         end
 
-        def write_ubuntu_netplan_config
-          # Create netplan configuration with all static IPs
-          addresses = @static_ips.map { |ip_info| "        - #{ip_info[:ip]}/#{ip_info[:prefix]}" }.join("\n")
+        def write_systemd_static_ip_service
+          # Universal method for creating a systemd service to manage static IPs
+          # Works for all distros (Ubuntu/Debian/Fedora/AlmaLinux/Kali/openSUSE)
+          #
+          # Why systemd service instead of native network config?
+          # - WSL2 manages eth0 with DHCP for DNS and default route
+          # - Applying network configs (netplan apply, systemd-networkd restart, nmcli)
+          #   causes loss of WSL2 DHCP IP which breaks DNS/routing
+          # - MAC address changes on WSL restart break NetworkManager configs
+          # - This service adds static IPs without disturbing WSL2's network management
 
-          netplan_config = <<~YAML
-            network:
-              version: 2
-              ethernets:
-                eth0:
-                  dhcp4: true
-                  addresses:
-            #{addresses}
-          YAML
+          ip_commands = @static_ips.map { |ip_info|
+            "ip addr add #{ip_info[:ip]}/#{ip_info[:prefix]} dev eth0 || true"
+          }.join("\n")
 
-          # Write to /etc/netplan/60-vagrant.yaml
-          config_path = "/tmp/60-vagrant.yaml"
+          service_config = <<~SERVICE
+            [Unit]
+            Description=Vagrant Static IP Configuration
+            After=network-online.target
+            Wants=network-online.target
 
-          escaped_config = netplan_config.gsub("'", "'\\\\''")
-          @machine.communicate.execute("echo '#{escaped_config}' > #{config_path}")
+            [Service]
+            Type=oneshot
+            RemainAfterExit=yes
+            ExecStart=/bin/bash -c '#{ip_commands}'
 
-          @machine.communicate.sudo("mkdir -p /etc/netplan")
-          @machine.communicate.sudo("mv #{config_path} /etc/netplan/60-vagrant.yaml")
-          @machine.communicate.sudo("chmod 600 /etc/netplan/60-vagrant.yaml")
+            [Install]
+            WantedBy=multi-user.target
+          SERVICE
 
-          @ui.info("Netplan configuration written with #{@static_ips.length} static IP(s)")
+          service_path = "/tmp/vagrant-static-ip.service"
 
-          # Apply netplan configuration only if systemd is running
-          systemd_running = @machine.communicate.test("systemctl is-system-running --quiet || systemctl is-system-running --wait")
+          escaped_config = service_config.gsub("'", "'\\\\''")
+          @machine.communicate.execute("echo '#{escaped_config}' > #{service_path}")
 
-          if systemd_running
-            @machine.communicate.sudo("netplan apply || true")
-          else
-            @ui.info("Systemd not ready, skipping netplan apply (configuration will apply on next restart)")
-          end
-        end
+          @machine.communicate.sudo("mkdir -p /etc/systemd/system")
+          @machine.communicate.sudo("mv #{service_path} /etc/systemd/system/vagrant-static-ip.service")
+          @machine.communicate.sudo("chmod 644 /etc/systemd/system/vagrant-static-ip.service")
 
-        def write_systemd_networkd_config
-          # Create systemd-networkd configuration for Debian and other distros
-          addresses = @static_ips.map { |ip_info| "Address=#{ip_info[:ip]}/#{ip_info[:prefix]}" }.join("\n")
+          @machine.communicate.sudo("systemctl daemon-reload")
+          @machine.communicate.sudo("systemctl enable vagrant-static-ip.service 2>/dev/null || true")
+          @machine.communicate.sudo("systemctl start vagrant-static-ip.service 2>/dev/null || true")
 
-          networkd_config = <<~CONFIG
-            [Match]
-            Name=eth0
-
-            [Network]
-            DHCP=yes
-            #{addresses}
-          CONFIG
-
-          config_path = "/tmp/10-eth0.network"
-
-          escaped_config = networkd_config.gsub("'", "'\\\\''")
-          @machine.communicate.execute("echo '#{escaped_config}' > #{config_path}")
-
-          @machine.communicate.sudo("mkdir -p /etc/systemd/network")
-          @machine.communicate.sudo("mv #{config_path} /etc/systemd/network/10-eth0.network")
-          @machine.communicate.sudo("chmod 644 /etc/systemd/network/10-eth0.network")
-
-          @ui.info("systemd-networkd configuration written with #{@static_ips.length} static IP(s)")
-
-          # Restart systemd-networkd if systemd is running
-          systemd_running = @machine.communicate.test("systemctl is-system-running --quiet || systemctl is-system-running --wait")
-
-          if systemd_running
-            @machine.communicate.sudo("systemctl restart systemd-networkd || true")
-          else
-            @ui.info("Systemd not ready, configuration will apply on next restart")
-          end
+          @ui.info("Static IP service configured with #{@static_ips.length} IP(s)")
         end
 
         def get_wsl_ip_address
