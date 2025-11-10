@@ -57,9 +57,27 @@ module VagrantPlugins
       def destroy
         execute("wsl", "--unregister", @config.distribution_name)
 
-        # Clean up distribution files
+        # Wait a moment for WSL to release file handles
+        sleep 1
+
+        # Clean up distribution files with retry logic
         dist_path = distribution_path
-        FileUtils.rm_rf(dist_path) if File.exist?(dist_path)
+        if File.exist?(dist_path)
+          retries = 0
+          max_retries = 5
+          begin
+            FileUtils.rm_rf(dist_path)
+          rescue Errno::EACCES, Errno::ENOTEMPTY => e
+            retries += 1
+            if retries < max_retries
+              sleep 1
+              retry
+            else
+              @machine.ui.warn "Could not remove distribution directory: #{e.message}"
+              @machine.ui.warn "You may need to manually delete: #{dist_path}"
+            end
+          end
+        end
       end
 
       # Execute a command in the WSL2 distribution
