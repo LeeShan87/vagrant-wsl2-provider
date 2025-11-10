@@ -138,15 +138,36 @@ rake install_local  # Build and install plugin
 
 ### Testing
 
-Integration tests are provided using PowerShell scripts:
+Integration tests use **Pester 5.x**, a PowerShell testing framework.
 
+**Prerequisites:**
+- PowerShell 5.1+ or PowerShell Core 7+
+- Pester 5.x (5.0 - 5.7.1, not 6.x alpha)
+
+**Install Pester:**
+```powershell
+Install-Module -Name Pester -RequiredVersion 5.7.1 -Force -Scope CurrentUser
+```
+
+Or let Rake handle it automatically:
 ```bash
-# Run all integration tests
+rake ensure_pester  # Check and install Pester if needed
+```
+
+**Run tests:**
+```bash
+# Run all integration tests (auto-checks Pester)
 rake test
+
+# Ensure Pester is installed first
+rake ensure_pester
 
 # Run individual tests
 rake test_basic
 rake test_snapshot
+rake test_data_disk
+rake test_networking
+rake test_multi_vm_network
 ```
 
 See [test/integration/README.md](test/integration/README.md) for more details.

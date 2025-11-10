@@ -2,6 +2,22 @@ require "bundler/gem_tasks"
 
 task :default => :test
 
+desc "Ensure Pester 5.x is installed (>= 5.0, < 6.0)"
+task :ensure_pester do
+  pester_check = <<~POWERSHELL
+    $pester = Get-Module -ListAvailable -Name Pester | Where-Object { $_.Version -ge '5.0' -and $_.Version -lt '6.0' } | Select-Object -First 1
+    if (-not $pester) {
+      Write-Host "Pester 5.x not found. Installing Pester 5.7.1..." -ForegroundColor Yellow
+      Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 -Force -Scope CurrentUser -ErrorAction SilentlyContinue | Out-Null
+      Install-Module -Name Pester -RequiredVersion 5.7.1 -Force -SkipPublisherCheck -Scope CurrentUser -Confirm:$false
+      Write-Host "Pester 5.7.1 installed successfully." -ForegroundColor Green
+    } else {
+      Write-Host "Pester $($pester.Version) is already installed." -ForegroundColor Green
+    }
+  POWERSHELL
+  sh "powershell -Command \"#{pester_check.gsub("\n", "; ")}\""
+end
+
 desc "Build and install the plugin locally"
 task :install_local do
   sh "gem build vagrant-wsl2-provider.gemspec"
@@ -18,7 +34,17 @@ task :test do
   sh "powershell -File test/integration/run_all_tests.ps1"
 end
 
-desc "Run basic integration test"
+desc "Run all Pester integration tests"
+task :test_pester => :ensure_pester do
+  sh "powershell -File test/integration/Invoke-PesterTests.ps1"
+end
+
+desc "Run basic integration test (Pester)"
+task :test_basic_pester => :ensure_pester do
+  sh "powershell -File test/integration/Invoke-PesterTests.ps1 -TestFile Basic"
+end
+
+desc "Run basic integration test (legacy)"
 task :test_basic do
   sh "powershell -File test/integration/test_basic.ps1"
 end
