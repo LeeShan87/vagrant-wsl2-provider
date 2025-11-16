@@ -68,3 +68,8 @@ desc "Run multi-VM network integration test"
 task :test_multi_vm_network do
   sh "powershell -File test/integration/test_multi_vm_network.ps1"
 end
+
+desc "Run all distributions compatibility test (Pester)"
+task :test_all_distributions => :ensure_pester do
+  sh "powershell -File test/integration/Invoke-PesterTests.ps1 -TestFile AllDistributions"
+end

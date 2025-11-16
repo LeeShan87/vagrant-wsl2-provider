@@ -87,4 +87,7 @@ build-iPhoneSimulator/
 .history
 .ionide
 
+# Test distribution folders
+examples/test-distributions/
+
 # End of https://www.toptal.com/developers/gitignore/api/visualstudiocode,ruby,vagrant
