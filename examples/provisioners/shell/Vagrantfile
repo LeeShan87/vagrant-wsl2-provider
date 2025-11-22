@@ -1,0 +1,39 @@
+# Shell Provisioner Example for vagrant-wsl2-provider
+# Demonstrates using the shell provisioner with WSL2
+
+Vagrant.configure("2") do |config|
+  config.vm.box = "Ubuntu-24.04"
+
+  config.vm.provider "wsl2" do |wsl|
+    wsl.distribution_name = "vagrant-wsl2-shell-test"
+    wsl.version = 2
+  end
+
+  # Inline shell provisioner (runs as root by default)
+  config.vm.provision "shell", inline: <<-SHELL
+    echo "=== Shell Provisioner Test ==="
+    echo "Hello from WSL2 Vagrant provider!"
+    echo "Current user: $(whoami)"
+    echo "System info: $(uname -a)"
+
+    # Create a test file
+    echo "shell-test" > /home/vagrant/shell-test.txt
+
+    echo "Shell provisioner completed successfully"
+  SHELL
+
+  # Install packages as root
+  config.vm.provision "shell", inline: <<-SHELL
+    echo "=== Installing packages ==="
+    sudo apt-get update -qq
+    sudo apt-get install -y htop
+    echo "Packages installed successfully"
+  SHELL
+
+  # Run script as vagrant user (non-privileged)
+  config.vm.provision "shell", privileged: false, inline: <<-SHELL
+    echo "=== Running as vagrant user ==="
+    whoami > /home/vagrant/whoami-test.txt
+    echo "Created whoami-test.txt as $(cat /home/vagrant/whoami-test.txt)"
+  SHELL
+end

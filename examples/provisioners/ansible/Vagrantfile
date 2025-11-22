@@ -1,0 +1,52 @@
+# Ansible Local Provisioner Example for vagrant-wsl2-provider
+# Demonstrates using ansible_local provisioner with WSL2
+
+Vagrant.configure("2") do |config|
+  config.vm.box = "Ubuntu-24.04"
+
+  config.vm.provider "wsl2" do |wsl|
+    wsl.distribution_name = "vagrant-wsl2-ansible-test"
+    wsl.version = 2
+  end
+
+  # Ansible local provisioner
+  # This will install Ansible inside the VM and run the playbook
+  config.vm.provision "ansible_local" do |ansible|
+    ansible.playbook = "test-playbook.yml"
+    ansible.verbose = true
+    ansible.install = true
+    ansible.install_mode = :default  # Use apt instead of pip on Ubuntu
+  end
+
+  # Verify Ansible provisioning results
+  config.vm.provision "shell", privileged: false, inline: <<-SHELL
+    echo "=== Ansible Provisioner Test Results ==="
+
+    echo "Checking ansible-test directory..."
+    if [ -d /home/vagrant/ansible-test ]; then
+      echo "[PASS] ansible-test directory exists"
+    else
+      echo "[FAIL] ansible-test directory not found"
+      exit 1
+    fi
+
+    echo "Checking ansible-test.txt file..."
+    if [ -f /home/vagrant/ansible-test/ansible-test.txt ]; then
+      echo "[PASS] ansible-test.txt exists"
+      echo "Contents: $(cat /home/vagrant/ansible-test/ansible-test.txt)"
+    else
+      echo "[FAIL] ansible-test.txt not found"
+      exit 1
+    fi
+
+    echo "Checking htop installation..."
+    if command -v htop &> /dev/null; then
+      echo "[PASS] htop is installed"
+    else
+      echo "[FAIL] htop not found"
+      exit 1
+    fi
+
+    echo "=== All Ansible provisioner tests passed ==="
+  SHELL
+end

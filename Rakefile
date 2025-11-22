@@ -29,47 +29,62 @@ task :uninstall do
   sh "vagrant plugin uninstall vagrant-wsl2-provider"
 end
 
-desc "Run all integration tests"
-task :test do
-  sh "powershell -File test/integration/run_all_tests.ps1"
-end
-
 desc "Run all Pester integration tests"
-task :test_pester => :ensure_pester do
+task :test => :ensure_pester do
   sh "powershell -File test/integration/Invoke-PesterTests.ps1"
 end
 
-desc "Run basic integration test (Pester)"
-task :test_basic_pester => :ensure_pester do
+desc "Run basic integration test"
+task :test_basic => :ensure_pester do
   sh "powershell -File test/integration/Invoke-PesterTests.ps1 -TestFile Basic"
 end
 
-desc "Run basic integration test (legacy)"
-task :test_basic do
-  sh "powershell -File test/integration/test_basic.ps1"
+desc "Run data disk integration test"
+task :test_data_disk => :ensure_pester do
+  sh "powershell -File test/integration/Invoke-PesterTests.ps1 -TestFile DataDisk"
 end
 
 desc "Run snapshot integration test"
-task :test_snapshot do
-  sh "powershell -File test/integration/test_snapshot.ps1"
-end
-
-desc "Run data disk integration test"
-task :test_data_disk do
-  sh "powershell -File test/integration/test_data_disk.ps1"
+task :test_snapshot => :ensure_pester do
+  sh "powershell -File test/integration/Invoke-PesterTests.ps1 -TestFile Snapshot"
 end
 
 desc "Run networking integration test"
-task :test_networking do
-  sh "powershell -File test/integration/test_networking.ps1"
+task :test_networking => :ensure_pester do
+  sh "powershell -File test/integration/Invoke-PesterTests.ps1 -TestFile Networking"
 end
 
 desc "Run multi-VM network integration test"
-task :test_multi_vm_network do
-  sh "powershell -File test/integration/test_multi_vm_network.ps1"
+task :test_multi_vm_network => :ensure_pester do
+  sh "powershell -File test/integration/Invoke-PesterTests.ps1 -TestFile MultiVmNetwork"
 end
 
-desc "Run all distributions compatibility test (Pester)"
+desc "Run provisioners integration test (shell, file, ansible)"
+task :test_provisioners => :ensure_pester do
+  sh "powershell -File test/integration/Invoke-PesterTests.ps1 -TestFile Provisioners"
+end
+
+desc "Run provisioners integration test - full (includes chef and salt)"
+task :test_provisioners_full => :ensure_pester do
+  sh "powershell -File test/integration/Invoke-PesterTests.ps1 -TestFile Provisioners -Full"
+end
+
+desc "Run Docker integration test (3 distros)"
+task :test_docker => :ensure_pester do
+  sh "powershell -File test/integration/Invoke-PesterTests.ps1 -TestFile Docker"
+end
+
+desc "Run Docker integration test - full (all distros)"
+task :test_docker_full => :ensure_pester do
+  sh "powershell -File test/integration/Invoke-PesterTests.ps1 -TestFile Docker -Full"
+end
+
+desc "Run all distributions compatibility test - quick (Pester, 3 distros)"
 task :test_all_distributions => :ensure_pester do
   sh "powershell -File test/integration/Invoke-PesterTests.ps1 -TestFile AllDistributions"
+end
+
+desc "Run all distributions compatibility test - full (Pester, all distros)"
+task :test_all_distributions_full => :ensure_pester do
+  sh "powershell -File test/integration/Invoke-PesterTests.ps1 -TestFile AllDistributions -Full"
 end

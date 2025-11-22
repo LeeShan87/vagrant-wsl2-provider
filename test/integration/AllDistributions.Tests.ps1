@@ -1,20 +1,36 @@
 # Integration test for all available WSL distributions
 # This test validates which distributions from 'wsl -l -o' work with the vagrant-wsl2-provider
+#
+# Usage:
+#   Quick test (3 distributions): rake test_all_distributions
+#   Full test (all distributions): rake test_all_distributions_full
+
+# Parameter to control test scope
+param(
+    [switch]$Full
+)
 
 BeforeAll {
-    # WSL distributions available from Windows Store (wsl -l -o)
-    $script:WslDistributions = @(
+    # Quick subset for fast testing (representing different distro families)
+    $script:QuickDistributions = @(
+        "Ubuntu-24.04",   # Debian-based
+        "Debian",         # Pure Debian
+        "AlmaLinux-8"     # RHEL-based
+    )
+
+    # All WSL distributions available from Windows Store (wsl -l -o)
+    $script:AllDistributions = @(
+        "Ubuntu-24.04",
+        "Debian",
         "AlmaLinux-8",
         "AlmaLinux-9",
         "AlmaLinux-Kitten-10",
         "AlmaLinux-10",
-        "Debian",
         "FedoraLinux-43",
         "FedoraLinux-42",
         "SUSE-Linux-Enterprise-15-SP7",
         "SUSE-Linux-Enterprise-16.0",
         "Ubuntu",
-        "Ubuntu-24.04",
         "archlinux",
         "kali-linux",
         "openSUSE-Tumbleweed",
@@ -27,6 +43,16 @@ BeforeAll {
         "openSUSE-Leap-15.6",
         "SUSE-Linux-Enterprise-15-SP6"
     )
+
+    # Select which distributions to test based on parameter
+    $script:WslDistributions = if ($Full) {
+        Write-Host "Running FULL distribution test (all $($script:AllDistributions.Count) distributions)" -ForegroundColor Cyan
+        $script:AllDistributions
+    } else {
+        Write-Host "Running QUICK distribution test ($($script:QuickDistributions.Count) distributions)" -ForegroundColor Cyan
+        Write-Host "Use -Full parameter to test all distributions" -ForegroundColor Gray
+        $script:QuickDistributions
+    }
 
     Write-Host ""
     Write-Host "Testing $($script:WslDistributions.Count) WSL distributions:" -ForegroundColor Cyan
@@ -145,7 +171,7 @@ Describe "WSL Distribution Compatibility Tests" {
                         Write-Host "  Error: $($errorMsg.Split("`n")[0])" -ForegroundColor Gray
 
                         # Cleanup attempt
-                        vagrant destroy -f 2>&1 | Out-Null
+                        vagrant destroy -f 2>$null | Out-Null
 
                         $script:TestResults[$distribution] = @{
                             Success = $false

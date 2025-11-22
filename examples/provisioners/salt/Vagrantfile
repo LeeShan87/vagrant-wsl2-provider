@@ -1,0 +1,50 @@
+# SaltStack Provisioner Example for vagrant-wsl2-provider
+# Demonstrates using Salt provisioner with WSL2
+#
+# KNOWN ISSUE: Salt bootstrap script URL has changed
+# Old URL: https://bootstrap.saltproject.io/
+# New URL: https://github.com/saltstack/salt-bootstrap/releases/latest/download/bootstrap-salt.sh
+# Vagrant 2.3.7 uses the old URL which no longer works
+# Recommended: Update to Vagrant 2.4.6 or later
+
+Vagrant.configure("2") do |config|
+  config.vm.box = "Ubuntu-24.04"
+
+  config.vm.provider "wsl2" do |wsl|
+    wsl.distribution_name = "vagrant-wsl2-salt-test"
+    wsl.version = 2
+  end
+
+  # SaltStack provisioner (masterless mode)
+  config.vm.provision "salt" do |salt|
+    salt.masterless = true
+    salt.minion_config = "minion"
+    salt.run_highstate = true
+    salt.install_type = "stable"
+    salt.verbose = true
+  end
+
+  # Verify Salt provisioning (if it succeeds)
+  config.vm.provision "shell", privileged: false, inline: <<-SHELL
+    echo "=== Salt Provisioner Test Results ==="
+
+    if [ -f /home/vagrant/salt-test.txt ]; then
+      echo "[PASS] salt-test.txt exists"
+      cat /home/vagrant/salt-test.txt
+    else
+      echo "[FAIL] salt-test.txt not found"
+    fi
+
+    if [ -d /home/vagrant/salt-test ]; then
+      echo "[PASS] salt-test directory exists"
+    else
+      echo "[FAIL] salt-test directory not found"
+    fi
+
+    if command -v curl &> /dev/null; then
+      echo "[PASS] curl is installed"
+    else
+      echo "[FAIL] curl not found"
+    fi
+  SHELL
+end
