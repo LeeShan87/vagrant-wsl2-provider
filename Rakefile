@@ -34,6 +34,11 @@ task :test => :ensure_pester do
   sh "powershell -File test/integration/Invoke-PesterTests.ps1"
 end
 
+desc "Run init integration test"
+task :test_init => :ensure_pester do
+  sh "powershell -File test/integration/Invoke-PesterTests.ps1 -TestFile Init"
+end
+
 desc "Run basic integration test"
 task :test_basic => :ensure_pester do
   sh "powershell -File test/integration/Invoke-PesterTests.ps1 -TestFile Basic"

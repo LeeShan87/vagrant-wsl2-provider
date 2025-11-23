@@ -1,32 +1,40 @@
 ---
-- name: Install Podman on RedHat-based systems
+- name: Install Docker CE on RedHat-based systems
   hosts: all
   become: yes
   tasks:
-    - name: Update package cache
+    - name: Update all packages
       dnf:
-        update_cache: yes
+        name: '*'
+        state: latest
 
-    - name: Install required packages
-      dnf:
-        name:
-          - ca-certificates
-          - curl
-          - iptables
-        state: present
+    - name: Add Docker CE repository
+      command: dnf config-manager --add-repo=https://download.docker.com/linux/centos/docker-ce.repo
+      args:
+        creates: /etc/yum.repos.d/docker-ce.repo
 
-    - name: Install Podman (Docker compatible)
+    - name: Install Docker CE and plugins
       dnf:
         name:
-          - podman
-          - podman-docker
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+          - docker-buildx-plugin
+          - docker-compose-plugin
         state: present
+        allowerasing: yes
 
-    - name: Verify Podman is working
-      command: podman info
-      register: podman_info
+    - name: Start Docker service
+      systemd:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: Verify Docker is working
+      command: docker run hello-world
+      register: docker_test
       changed_when: false
 
-    - name: Show Podman version
+    - name: Show Docker test result
       debug:
-        msg: "Podman is installed (Docker CLI compatibility enabled)"
+        msg: "Docker is installed and working correctly"
