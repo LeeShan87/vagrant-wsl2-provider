@@ -1,5 +1,6 @@
 # Test Vagrantfile for vagrant-wsl2-provider
-
+# Not used int the integration tests any more.
+# Keeped it as an example.
 Vagrant.configure("2") do |config|
   config.vm.box = "Ubuntu-24.04"
 

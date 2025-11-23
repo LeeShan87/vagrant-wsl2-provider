@@ -1,67 +1,497 @@
-# Multi-VM Vagrantfile for Docker testing with vagrant-wsl2-provider
+# Docker testing Vagrantfile for vagrant-wsl2-provider
 # Tests Docker (Moby) installation with systemd support
-
-# Working distributions with ansible_local support
-DISTRIBUTIONS = [
-  "AlmaLinux-8",
-  "AlmaLinux-9",
-  "Debian",
-  "FedoraLinux-42",  
-  "Ubuntu",
-  "Ubuntu-24.04",
-  "kali-linux",
-  "openSUSE-Tumbleweed",
-]
+#
+# Usage:
+#   vagrant up ubuntu2404              # Start specific distribution
+#   vagrant up almalinux8 debian       # Start multiple distributions
+#   vagrant ssh ubuntu2404             # SSH into specific VM
+#
+# Available machines (all have autostart: false):
+#   ubuntu2404, ubuntu2204, ubuntu2004, ubuntu, debian, kali
+#   almalinux8, almalinux9, almalinux10, almalinuxkitten10
+#   fedora42, fedora43
+#   oraclelinux79, oraclelinux810, oraclelinux95
+#   opensuse, opensuseleap156, opensuseleap160
+#   sle15sp6, sle15sp7, sle160
+#   archlinux
 
 Vagrant.configure("2") do |config|
-  DISTRIBUTIONS.each do |distro|
-    # Clean name for Vagrant machine
-    machine_name = "docker-#{distro.downcase.gsub(/[^a-z0-9]/, '')}"
 
-    config.vm.define machine_name do |node|
-      node.vm.box = distro
+  # === Ubuntu distributions ===
 
-      node.vm.provider "wsl2" do |wsl|
-        wsl.distribution_name = "vagrant-#{machine_name}"
-        wsl.version = 2
-        wsl.memory = 2048
-        wsl.cpus = 2
-
-        # Enable systemd - required for Docker
-        wsl.systemd = true
-        wsl.default_user = "vagrant"
-        wsl.hostname = machine_name
-      end
-
-      # Install Docker using Ansible (OS-specific playbook)
-      playbook = case distro
-                 when /Ubuntu|Debian|kali/i then "provisioning/docker-debian.yml"
-                 when /AlmaLinux|Fedora/i then "provisioning/docker-redhat.yml"
-                 when /openSUSE/i then "provisioning/docker-suse.yml"
-                 else "provisioning/docker-debian.yml"  # default fallback
-                 end
-
-      node.vm.provision "ansible_local" do |ansible|
-        ansible.playbook = playbook
-        ansible.verbose = true
-        ansible.install = true
-        ansible.install_mode = :default
-      end
-
-      # Test Docker installation
-      node.vm.provision "shell", inline: <<-SHELL
-        echo "=== Testing Docker Installation on #{distro} ==="
-        sudo systemctl status docker --no-pager
-        echo ""
-        echo "=== Running hello-world container ==="
-        sudo docker run hello-world
-        echo ""
-        echo "=== Docker Info ==="
-        sudo docker --version
-        sudo docker info | grep -E "Server Version|Storage Driver|Cgroup Driver"
-        echo ""
-        echo "=== #{distro} Docker Test Complete ==="
-      SHELL
+  config.vm.define "ubuntu2404", autostart: false do |node|
+    node.vm.box = "Ubuntu-24.04"
+    node.vm.provider "wsl2" do |wsl|
+      wsl.distribution_name = "vagrant-docker-ubuntu2404"
+      wsl.version = 2
+      wsl.systemd = true
+      wsl.default_user = "vagrant"
+      wsl.hostname = "docker-ubuntu2404"
     end
+    node.vm.provision "ansible_local" do |ansible|
+      ansible.playbook = "provisioning/docker-debian.yml"
+      ansible.verbose = true
+      ansible.install = true
+      ansible.install_mode = :default
+    end
+    node.vm.provision "shell", inline: <<-SHELL
+      sudo systemctl status docker --no-pager
+      sudo docker run hello-world
+      sudo docker --version
+    SHELL
+  end
+
+  config.vm.define "ubuntu2204", autostart: false do |node|
+    node.vm.box = "Ubuntu-22.04"
+    node.vm.provider "wsl2" do |wsl|
+      wsl.distribution_name = "vagrant-docker-ubuntu2204"
+      wsl.version = 2
+      wsl.systemd = true
+      wsl.default_user = "vagrant"
+      wsl.hostname = "docker-ubuntu2204"
+    end
+    node.vm.provision "ansible_local" do |ansible|
+      ansible.playbook = "provisioning/docker-debian.yml"
+      ansible.verbose = true
+      ansible.install = true
+      ansible.install_mode = :default
+    end
+    node.vm.provision "shell", inline: <<-SHELL
+      sudo systemctl status docker --no-pager
+      sudo docker run hello-world
+    SHELL
+  end
+
+  config.vm.define "ubuntu2004", autostart: false do |node|
+    node.vm.box = "Ubuntu-20.04"
+    node.vm.provider "wsl2" do |wsl|
+      wsl.distribution_name = "vagrant-docker-ubuntu2004"
+      wsl.version = 2
+      wsl.systemd = true
+      wsl.default_user = "vagrant"
+      wsl.hostname = "docker-ubuntu2004"
+    end
+    node.vm.provision "ansible_local" do |ansible|
+      ansible.playbook = "provisioning/docker-debian.yml"
+      ansible.verbose = true
+      ansible.install = true
+      ansible.install_mode = :default
+    end
+    node.vm.provision "shell", inline: <<-SHELL
+      sudo systemctl status docker --no-pager
+      sudo docker run hello-world
+    SHELL
+  end
+
+  config.vm.define "ubuntu", autostart: false do |node|
+    node.vm.box = "Ubuntu"
+    node.vm.provider "wsl2" do |wsl|
+      wsl.distribution_name = "vagrant-docker-ubuntu"
+      wsl.version = 2
+      wsl.systemd = true
+      wsl.default_user = "vagrant"
+      wsl.hostname = "docker-ubuntu"
+    end
+    node.vm.provision "ansible_local" do |ansible|
+      ansible.playbook = "provisioning/docker-debian.yml"
+      ansible.verbose = true
+      ansible.install = true
+      ansible.install_mode = :default
+    end
+    node.vm.provision "shell", inline: <<-SHELL
+      sudo systemctl status docker --no-pager
+      sudo docker run hello-world
+    SHELL
+  end
+
+  # === Debian-based distributions ===
+
+  config.vm.define "debian", autostart: false do |node|
+    node.vm.box = "Debian"
+    node.vm.provider "wsl2" do |wsl|
+      wsl.distribution_name = "vagrant-docker-debian"
+      wsl.version = 2
+      wsl.systemd = true
+      wsl.default_user = "vagrant"
+      wsl.hostname = "docker-debian"
+    end
+    node.vm.provision "ansible_local" do |ansible|
+      ansible.playbook = "provisioning/docker-debian.yml"
+      ansible.verbose = true
+      ansible.install = true
+      ansible.install_mode = :default
+    end
+    node.vm.provision "shell", inline: <<-SHELL
+      sudo systemctl status docker --no-pager
+      sudo docker run hello-world
+    SHELL
+  end
+
+  config.vm.define "kali", autostart: false do |node|
+    node.vm.box = "kali-linux"
+    node.vm.provider "wsl2" do |wsl|
+      wsl.distribution_name = "vagrant-docker-kali"
+      wsl.version = 2
+      wsl.systemd = true
+      wsl.default_user = "vagrant"
+      wsl.hostname = "docker-kali"
+    end
+    node.vm.provision "ansible_local" do |ansible|
+      ansible.playbook = "provisioning/docker-debian.yml"
+      ansible.verbose = true
+      ansible.install = true
+      ansible.install_mode = :default
+    end
+    node.vm.provision "shell", inline: <<-SHELL
+      sudo systemctl status docker --no-pager
+      sudo docker run hello-world
+    SHELL
+  end
+
+  # === RHEL-based distributions (AlmaLinux) ===
+
+  config.vm.define "almalinux8", autostart: false do |node|
+    node.vm.box = "AlmaLinux-8"
+    node.vm.provider "wsl2" do |wsl|
+      wsl.distribution_name = "vagrant-docker-almalinux8"
+      wsl.version = 2
+      wsl.systemd = true
+      wsl.default_user = "vagrant"
+      wsl.hostname = "docker-almalinux8"
+    end
+    node.vm.provision "ansible_local" do |ansible|
+      ansible.playbook = "provisioning/docker-redhat.yml"
+      ansible.verbose = true
+      ansible.install = true
+      ansible.install_mode = :default
+    end
+    node.vm.provision "shell", inline: <<-SHELL
+      sudo systemctl status docker --no-pager
+      sudo docker run hello-world
+    SHELL
+  end
+
+  config.vm.define "almalinux9", autostart: false do |node|
+    node.vm.box = "AlmaLinux-9"
+    node.vm.provider "wsl2" do |wsl|
+      wsl.distribution_name = "vagrant-docker-almalinux9"
+      wsl.version = 2
+      wsl.systemd = true
+      wsl.default_user = "vagrant"
+      wsl.hostname = "docker-almalinux9"
+    end
+    node.vm.provision "ansible_local" do |ansible|
+      ansible.playbook = "provisioning/docker-redhat.yml"
+      ansible.verbose = true
+      ansible.install = true
+      ansible.install_mode = :default
+    end
+    node.vm.provision "shell", inline: <<-SHELL
+      sudo systemctl status docker --no-pager
+      sudo docker run hello-world
+    SHELL
+  end
+
+  config.vm.define "almalinux10", autostart: false do |node|
+    node.vm.box = "AlmaLinux-10"
+    node.vm.provider "wsl2" do |wsl|
+      wsl.distribution_name = "vagrant-docker-almalinux10"
+      wsl.version = 2
+      wsl.systemd = true
+      wsl.default_user = "vagrant"
+      wsl.hostname = "docker-almalinux10"
+    end
+    node.vm.provision "ansible_local" do |ansible|
+      ansible.playbook = "provisioning/docker-redhat.yml"
+      ansible.verbose = true
+      ansible.install = true
+      ansible.install_mode = :default
+    end
+    node.vm.provision "shell", inline: <<-SHELL
+      sudo systemctl status docker --no-pager
+      sudo docker run hello-world
+    SHELL
+  end
+
+  config.vm.define "almalinuxkitten10", autostart: false do |node|
+    node.vm.box = "AlmaLinux-Kitten-10"
+    node.vm.provider "wsl2" do |wsl|
+      wsl.distribution_name = "vagrant-docker-almalinuxkitten10"
+      wsl.version = 2
+      wsl.systemd = true
+      wsl.default_user = "vagrant"
+      wsl.hostname = "docker-almalinuxkitten10"
+    end
+    node.vm.provision "ansible_local" do |ansible|
+      ansible.playbook = "provisioning/docker-redhat.yml"
+      ansible.verbose = true
+      ansible.install = true
+      ansible.install_mode = :default
+    end
+    node.vm.provision "shell", inline: <<-SHELL
+      sudo systemctl status docker --no-pager
+      sudo docker run hello-world
+    SHELL
+  end
+
+  # === RHEL-based distributions (Fedora) ===
+
+  config.vm.define "fedora42", autostart: false do |node|
+    node.vm.box = "FedoraLinux-42"
+    node.vm.provider "wsl2" do |wsl|
+      wsl.distribution_name = "vagrant-docker-fedora42"
+      wsl.version = 2
+      wsl.systemd = true
+      wsl.default_user = "vagrant"
+      wsl.hostname = "docker-fedora42"
+    end
+    node.vm.provision "ansible_local" do |ansible|
+      ansible.playbook = "provisioning/docker-redhat.yml"
+      ansible.verbose = true
+      ansible.install = true
+      ansible.install_mode = :default
+    end
+    node.vm.provision "shell", inline: <<-SHELL
+      sudo systemctl status docker --no-pager
+      sudo docker run hello-world
+    SHELL
+  end
+
+  config.vm.define "fedora43", autostart: false do |node|
+    node.vm.box = "FedoraLinux-43"
+    node.vm.provider "wsl2" do |wsl|
+      wsl.distribution_name = "vagrant-docker-fedora43"
+      wsl.version = 2
+      wsl.systemd = true
+      wsl.default_user = "vagrant"
+      wsl.hostname = "docker-fedora43"
+    end
+    node.vm.provision "ansible_local" do |ansible|
+      ansible.playbook = "provisioning/docker-redhat.yml"
+      ansible.verbose = true
+      ansible.install = true
+      ansible.install_mode = :default
+    end
+    node.vm.provision "shell", inline: <<-SHELL
+      sudo systemctl status docker --no-pager
+      sudo docker run hello-world
+    SHELL
+  end
+
+  # === RHEL-based distributions (Oracle Linux) ===
+
+  config.vm.define "oraclelinux79", autostart: false do |node|
+    node.vm.box = "OracleLinux_7_9"
+    node.vm.provider "wsl2" do |wsl|
+      wsl.distribution_name = "vagrant-docker-oraclelinux79"
+      wsl.version = 2
+      wsl.systemd = true
+      wsl.default_user = "vagrant"
+      wsl.hostname = "docker-oraclelinux79"
+    end
+    node.vm.provision "ansible_local" do |ansible|
+      ansible.playbook = "provisioning/docker-redhat.yml"
+      ansible.verbose = true
+      ansible.install = true
+      ansible.install_mode = :default
+    end
+    node.vm.provision "shell", inline: <<-SHELL
+      sudo systemctl status docker --no-pager
+      sudo docker run hello-world
+    SHELL
+  end
+
+  config.vm.define "oraclelinux810", autostart: false do |node|
+    node.vm.box = "OracleLinux_8_10"
+    node.vm.provider "wsl2" do |wsl|
+      wsl.distribution_name = "vagrant-docker-oraclelinux810"
+      wsl.version = 2
+      wsl.systemd = true
+      wsl.default_user = "vagrant"
+      wsl.hostname = "docker-oraclelinux810"
+    end
+    node.vm.provision "ansible_local" do |ansible|
+      ansible.playbook = "provisioning/docker-redhat.yml"
+      ansible.verbose = true
+      ansible.install = true
+      ansible.install_mode = :default
+    end
+    node.vm.provision "shell", inline: <<-SHELL
+      sudo systemctl status docker --no-pager
+      sudo docker run hello-world
+    SHELL
+  end
+
+  config.vm.define "oraclelinux95", autostart: false do |node|
+    node.vm.box = "OracleLinux_9_5"
+    node.vm.provider "wsl2" do |wsl|
+      wsl.distribution_name = "vagrant-docker-oraclelinux95"
+      wsl.version = 2
+      wsl.systemd = true
+      wsl.default_user = "vagrant"
+      wsl.hostname = "docker-oraclelinux95"
+    end
+    node.vm.provision "ansible_local" do |ansible|
+      ansible.playbook = "provisioning/docker-redhat.yml"
+      ansible.verbose = true
+      ansible.install = true
+      ansible.install_mode = :default
+    end
+    node.vm.provision "shell", inline: <<-SHELL
+      sudo systemctl status docker --no-pager
+      sudo docker run hello-world
+    SHELL
+  end
+
+  # === SUSE-based distributions ===
+
+  config.vm.define "opensuse", autostart: false do |node|
+    node.vm.box = "openSUSE-Tumbleweed"
+    node.vm.provider "wsl2" do |wsl|
+      wsl.distribution_name = "vagrant-docker-opensuse"
+      wsl.version = 2
+      wsl.systemd = true
+      wsl.default_user = "vagrant"
+      wsl.hostname = "docker-opensuse"
+    end
+    node.vm.provision "ansible_local" do |ansible|
+      ansible.playbook = "provisioning/docker-suse.yml"
+      ansible.verbose = true
+      ansible.install = true
+      ansible.install_mode = :default
+    end
+    node.vm.provision "shell", inline: <<-SHELL
+      sudo systemctl status docker --no-pager
+      sudo docker run hello-world
+    SHELL
+  end
+
+  config.vm.define "opensuseleap156", autostart: false do |node|
+    node.vm.box = "openSUSE-Leap-15.6"
+    node.vm.provider "wsl2" do |wsl|
+      wsl.distribution_name = "vagrant-docker-opensuseleap156"
+      wsl.version = 2
+      wsl.systemd = true
+      wsl.default_user = "vagrant"
+      wsl.hostname = "docker-opensuseleap156"
+    end
+    node.vm.provision "ansible_local" do |ansible|
+      ansible.playbook = "provisioning/docker-suse.yml"
+      ansible.verbose = true
+      ansible.install = true
+      ansible.install_mode = :default
+    end
+    node.vm.provision "shell", inline: <<-SHELL
+      sudo systemctl status docker --no-pager
+      sudo docker run hello-world
+    SHELL
+  end
+
+  config.vm.define "opensuseleap160", autostart: false do |node|
+    node.vm.box = "openSUSE-Leap-16.0"
+    node.vm.provider "wsl2" do |wsl|
+      wsl.distribution_name = "vagrant-docker-opensuseleap160"
+      wsl.version = 2
+      wsl.systemd = true
+      wsl.default_user = "vagrant"
+      wsl.hostname = "docker-opensuseleap160"
+    end
+    node.vm.provision "ansible_local" do |ansible|
+      ansible.playbook = "provisioning/docker-suse.yml"
+      ansible.verbose = true
+      ansible.install = true
+      ansible.install_mode = :default
+    end
+    node.vm.provision "shell", inline: <<-SHELL
+      sudo systemctl status docker --no-pager
+      sudo docker run hello-world
+    SHELL
+  end
+
+  config.vm.define "sle15sp6", autostart: false do |node|
+    node.vm.box = "SUSE-Linux-Enterprise-15-SP6"
+    node.vm.provider "wsl2" do |wsl|
+      wsl.distribution_name = "vagrant-docker-sle15sp6"
+      wsl.version = 2
+      wsl.systemd = true
+      wsl.default_user = "vagrant"
+      wsl.hostname = "docker-sle15sp6"
+    end
+    node.vm.provision "ansible_local" do |ansible|
+      ansible.playbook = "provisioning/docker-suse.yml"
+      ansible.verbose = true
+      ansible.install = true
+      ansible.install_mode = :default
+    end
+    node.vm.provision "shell", inline: <<-SHELL
+      sudo systemctl status docker --no-pager
+      sudo docker run hello-world
+    SHELL
+  end
+
+  config.vm.define "sle15sp7", autostart: false do |node|
+    node.vm.box = "SUSE-Linux-Enterprise-15-SP7"
+    node.vm.provider "wsl2" do |wsl|
+      wsl.distribution_name = "vagrant-docker-sle15sp7"
+      wsl.version = 2
+      wsl.systemd = true
+      wsl.default_user = "vagrant"
+      wsl.hostname = "docker-sle15sp7"
+    end
+    node.vm.provision "ansible_local" do |ansible|
+      ansible.playbook = "provisioning/docker-suse.yml"
+      ansible.verbose = true
+      ansible.install = true
+      ansible.install_mode = :default
+    end
+    node.vm.provision "shell", inline: <<-SHELL
+      sudo systemctl status docker --no-pager
+      sudo docker run hello-world
+    SHELL
+  end
+
+  config.vm.define "sle160", autostart: false do |node|
+    node.vm.box = "SUSE-Linux-Enterprise-16.0"
+    node.vm.provider "wsl2" do |wsl|
+      wsl.distribution_name = "vagrant-docker-sle160"
+      wsl.version = 2
+      wsl.systemd = true
+      wsl.default_user = "vagrant"
+      wsl.hostname = "docker-sle160"
+    end
+    node.vm.provision "ansible_local" do |ansible|
+      ansible.playbook = "provisioning/docker-suse.yml"
+      ansible.verbose = true
+      ansible.install = true
+      ansible.install_mode = :default
+    end
+    node.vm.provision "shell", inline: <<-SHELL
+      sudo systemctl status docker --no-pager
+      sudo docker run hello-world
+    SHELL
+  end
+
+  # === Other distributions ===
+
+  config.vm.define "archlinux", autostart: false do |node|
+    node.vm.box = "archlinux"
+    node.vm.provider "wsl2" do |wsl|
+      wsl.distribution_name = "vagrant-docker-archlinux"
+      wsl.version = 2
+      wsl.systemd = true
+      wsl.default_user = "vagrant"
+      wsl.hostname = "docker-archlinux"
+    end
+    # Note: Arch Linux may need a custom playbook
+    node.vm.provision "ansible_local" do |ansible|
+      ansible.playbook = "provisioning/docker-debian.yml"
+      ansible.verbose = true
+      ansible.install = true
+      ansible.install_mode = :default
+    end
+    node.vm.provision "shell", inline: <<-SHELL
+      sudo systemctl status docker --no-pager
+      sudo docker run hello-world
+    SHELL
   end
 end

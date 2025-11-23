@@ -1,0 +1,40 @@
+# Chef Solo Provisioner Example for vagrant-wsl2-provider
+# Demonstrates using Chef Solo provisioner with WSL2
+#
+# KNOWN ISSUE: This provisioner currently fails due to shared folder symlink issues
+# Error: Shared folders that Chef requires are missing on the virtual machine.
+# The provisioner fails to create a symlink for the cookbooks directory
+# See: https://github.com/your-repo/vagrant-wsl2-provider/issues/XX
+
+Vagrant.configure("2") do |config|
+  config.vm.box = "Ubuntu-24.04"
+
+  config.vm.provider "wsl2" do |wsl|
+    wsl.distribution_name = "vagrant-wsl2-chef-test"
+    wsl.version = 2
+  end
+
+  # Chef Solo provisioner
+  config.vm.provision "chef_solo" do |chef|
+    chef.cookbooks_path = "cookbooks"
+    chef.add_recipe "test-cookbook::default"
+    chef.arguments = "--chef-license accept"  # Accept Chef license
+    chef.json = {
+      "test" => {
+        "message" => "Hello from Chef on WSL2!"
+      }
+    }
+  end
+
+  # Verify Chef provisioning (if it succeeds)
+  config.vm.provision "shell", privileged: false, inline: <<-SHELL
+    echo "=== Chef Provisioner Test Results ==="
+
+    if [ -f /home/vagrant/chef-test.txt ]; then
+      echo "[PASS] chef-test.txt exists"
+      cat /home/vagrant/chef-test.txt
+    else
+      echo "[FAIL] chef-test.txt not found"
+    fi
+  SHELL
+end
