@@ -13,6 +13,9 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+# Disable Vagrant update check notifications
+$env:VAGRANT_CHECKPOINT_DISABLE = "1"
+
 # Ensure Pester 5.x is imported
 Import-Module Pester -MinimumVersion 5.0 -ErrorAction Stop
 

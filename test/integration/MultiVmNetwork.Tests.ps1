@@ -121,7 +121,7 @@ Describe "Vagrant WSL2 Provider - Multi-VM Networking" -Skip:(-not $isAdminCheck
 
         It "Should allow HTTP communication from vm2 to vm1" {
             # Start Python HTTP server on vm1 in background
-            vagrant ssh vm1 -c "python3 -m http.server 8080 --bind 192.168.50.10 > /dev/null 2>&1 &" 2>$null
+            vagrant ssh vm1 -ic "python3 -m http.server 8080 --bind 192.168.50.10 > /dev/null 2>&1 &" 2>$null
 
             # Wait for server to start
             Start-Sleep -Seconds 3
@@ -133,8 +133,10 @@ Describe "Vagrant WSL2 Provider - Multi-VM Networking" -Skip:(-not $isAdminCheck
             vagrant ssh vm1 -c "pkill -f 'python3 -m http.server 8080'" 2>$null
 
             # This test may fail due to WSL2 shared NIC limitations
-            if ($http_result -and $http_result -match "Directory listing") {
-                $http_result | Should -Match "Directory listing" -Because "HTTP server should respond"
+            # Join lines to enable multiline matching, check for HTML content from Python's HTTP server
+            $http_result_joined = ($http_result -join "`n")
+            if ($http_result_joined -and ($http_result_joined -match "Directory listing" -or $http_result_joined -match "<!DOCTYPE HTML>")) {
+                $http_result_joined | Should -Match "<!DOCTYPE HTML>|Directory listing" -Because "HTTP server should respond"
             } else {
                 Set-ItResult -Skipped -Because "VM-to-VM HTTP communication may be limited due to WSL2 shared NIC"
             }

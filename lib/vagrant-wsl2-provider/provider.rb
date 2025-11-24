@@ -22,6 +22,8 @@ module VagrantPlugins
       autoload :ConfigureNetworks, File.expand_path("../action/configure_networks", __FILE__)
     end
     class Provider < Vagrant.plugin("2", :provider)
+      attr_reader :driver
+
       def initialize(machine)
         @machine = machine
         @driver = Driver.new(@machine)

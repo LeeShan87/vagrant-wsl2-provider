@@ -61,7 +61,7 @@ Describe "Vagrant WSL2 Provider - Basic Operations" {
 
         It "Should start a background process (Python web server)" {
             # Try to start Python HTTP server in background
-            $output = vagrant ssh -c "python3 -m http.server 8888 > /dev/null 2>&1 &" 2>&1
+            $output = vagrant ssh -ic "python3 -m http.server 8888 > /dev/null 2>&1 &" | Out-Null
             $LASTEXITCODE | Should -Be 0
 
             # Give it a moment to start

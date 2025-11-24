@@ -24,7 +24,9 @@ Or install from source:
 git clone https://github.com/LeeShan87/vagrant-wsl2-provider.git
 cd vagrant-wsl2-provider
 gem build vagrant-wsl2-provider.gemspec
-vagrant plugin install vagrant-wsl2-provider-0.1.0.gem
+vagrant plugin install vagrant-wsl2-provider-0.4.0.gem
+# Or
+rake install_local
 ```
 
 ## Usage
@@ -33,13 +35,11 @@ Create a `Vagrantfile` with the WSL2 provider:
 
 ```ruby
 Vagrant.configure("2") do |config|
-  config.vm.box = "ubuntu/focal64"  # Or any WSL2-compatible box
+  config.vm.box = "Ubuntu"  # Or any WSL2-compatible box
 
   config.vm.provider "wsl2" do |wsl|
     wsl.distribution_name = "my-dev-env"
     wsl.version = 2
-    wsl.memory = 4096
-    wsl.cpus = 2
     wsl.gui_support = true
   end
 end
@@ -294,15 +294,15 @@ The following distributions are fully tested and working with shell/file/ansible
 - VHD/VMDK to WSL2 format conversion
 - Support for development backup workflows
 
-### v0.4 - Legacy Distribution Support
-- Non-interactive setup for Ubuntu 20.04, 22.04
-- Support for Oracle Linux distributions
-- Improved compatibility with legacy WSL registration system
-
-### v0.5 - Network Configuration
+### v0.4 - Network Configuration
 - Fixed network support for multiple WSL2 distributions
 - Network isolation and custom IP configuration
 - Port forwarding enhancements
+
+### v0.5 - Legacy Distribution Support
+- Non-interactive setup for Ubuntu 20.04, 22.04
+- Support for Oracle Linux distributions
+- Improved compatibility with legacy WSL registration system
 
 ## Contributing
 

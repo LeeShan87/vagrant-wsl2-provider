@@ -7,7 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2025-11-24
+
+### Changed
+- **BREAKING**: Complete rewrite of WSL2 communicator for improved reliability and performance
+- Removed base64 command encoding in favor of direct `wsl --exec bash` execution
+- Changed from `-l -c` to `--exec bash -lc` for more predictable command execution
+- Improved error handling with proper Vagrant error classes and exit code checking
+- Enhanced stderr filtering to remove harmless WSL2-specific warnings
+
 ### Added
+- Custom `vagrant ssh` command with WSL2-specific bash flag support
+- Compound flag support: `-cli`, `-lic`, `-lc`, `-ic` for convenient bash flag combinations
+- `-l` flag: Use login shell (sources `~/.bash_profile`, `~/.profile`)
+- `-i` flag: Use interactive shell (enables job control for background processes)
+- Background process support using `-i` flag with proper job control
+- WSL command reference documentation in [docs/wsl2-command-cheat-sheet.md](docs/wsl2-command-cheat-sheet.md)
+- Improved `wait_for_ready` implementation with proper timeout handling
+- Better logging and debug output throughout communicator
 - Private network support with static IP configuration
 - Port forwarding support via Windows netsh portproxy
 - Multi-distribution network configuration (Ubuntu netplan + Debian systemd-networkd)
@@ -16,8 +33,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Network configuration examples in `examples/networking/`
 - Multi-VM network example with detailed README in `examples/multi-vm-network/`
 - Integration test for networking functionality (requires admin privileges)
+- **Pester 5.x testing framework** for comprehensive integration testing
+- Centralized test runner (`Invoke-PesterTests.ps1`) with flexible test selection
+- Distribution coverage tests across multiple WSL2 distributions
+- Docker integration tests covering installation across various distributions
+- Provisioner tests (shell, file, Ansible, Chef, Salt)
+- Expanded provisioner examples with individual Vagrantfiles per provisioner type
+- Docker test examples covering 12+ different Linux distributions
+- Rake tasks for running specific test suites
 
-### Features
+### Fixed
+- Background processes now work correctly with `vagrant ssh -i "command &"`
+- Stderr warnings (`screen size is bogus`, job control messages) are now properly filtered
+- Command execution with pipes and redirections works reliably
+- Exit code propagation from WSL commands to Vagrant
+- SSH command output streaming works correctly with real-time output
+
+### SSH Features
+- Execute commands with custom bash flags: `vagrant ssh -cli "python3 -m http.server &"`
+- Run background processes: `vagrant ssh -i "long-running-command &"`
+- Login shell with interactive mode: `vagrant ssh -li` (for interactive SSH session)
+- Standard command execution: `vagrant ssh -c "echo hello"` (uses default `-lc` flags)
+- Help text available via `vagrant ssh --help` with descriptions for all flags
+
+### Network Features
 - Configure static IPs using `config.vm.network "private_network", ip: "192.168.33.10"`
 - Port forwarding using `config.vm.network "forwarded_port", guest: 80, host: 8080`
 - Automatic detection of netplan (Ubuntu) vs systemd-networkd (Debian/others)
@@ -27,7 +66,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Clear warnings when administrator privileges are missing
 - Public network (bridged mode) warning - not supported due to WSL2 architecture
 
-### Configuration
+### Network Configuration
 ```ruby
 # Static IP for inter-VM communication
 config.vm.network "private_network", ip: "192.168.33.10"
@@ -35,6 +74,21 @@ config.vm.network "private_network", ip: "192.168.33.10"
 # Port forwarding for Windows host access
 config.vm.network "forwarded_port", guest: 80, host: 8080
 config.vm.network "forwarded_port", guest: 443, host: 8443, host_ip: "127.0.0.1"
+```
+
+### SSH Usage Examples
+```bash
+# Standard command execution (default -lc flags)
+vagrant ssh -c "echo hello"
+
+# Background process with interactive shell
+vagrant ssh -i "python3 -m http.server 8000 &"
+
+# Compound flags for convenience
+vagrant ssh -cli "nohup long-running-command > output.log &"
+
+# Login interactive shell
+vagrant ssh -li "source ~/.bashrc && my-command"
 ```
 
 ### WSL2 Networking Limitations
@@ -50,6 +104,13 @@ config.vm.network "forwarded_port", guest: 443, host: 8443, host_ip: "127.0.0.1"
 - Port forwarding configured using `netsh interface portproxy`
 - Routes and port forwards are non-persistent (removed on Windows restart)
 - Re-applied automatically on each `vagrant up`
+- WSL commands executed via `wsl --distribution <name> -u vagrant --exec bash <flags> <command>`
+- Bash flags parsed from command string for flexible execution modes
+- Compound flags preprocessed before OptionParser to ensure correct argument parsing
+- **Testing infrastructure**: Pester 5.x framework with modular test files
+- Integration tests run real Vagrant commands against actual WSL2 distributions
+- Test organization: `Basic.Tests.ps1`, `Snapshot.Tests.ps1`, `DataDisk.Tests.ps1`, `Networking.Tests.ps1`, `MultiVmNetwork.Tests.ps1`, `Provisioners.Tests.ps1`, `Docker.Tests.ps1`, `AllDistributions.Tests.ps1`
+- Rake integration for easy test execution: `rake test`, `rake test_basic`, `rake test_snapshot`, etc.
 
 ## [0.3.0] - 2025-11-01
 
@@ -144,7 +205,8 @@ end
 - Some SUSE Enterprise distributions have guest detection issues
 - AlmaLinux-10 and archlinux have provisioning limitations
 
-[unreleased]: https://github.com/LeeShan87/vagrant-wsl2-provider/compare/v0.3.0...HEAD
+[unreleased]: https://github.com/LeeShan87/vagrant-wsl2-provider/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/LeeShan87/vagrant-wsl2-provider/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/LeeShan87/vagrant-wsl2-provider/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/LeeShan87/vagrant-wsl2-provider/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/LeeShan87/vagrant-wsl2-provider/releases/tag/v0.1.0
