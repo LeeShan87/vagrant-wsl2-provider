@@ -33,6 +33,12 @@ module VagrantPlugins
         Communicator
       end
 
+      # Override vagrant ssh command to support bash flags for WSL2
+      command("ssh", primary: false) do
+        require_relative "command/ssh"
+        Command::SSH
+      end
+
       # Universal guest capability for shell path expansion
       guest_capability "linux", "shell_expand_guest_path" do
         require_relative "cap/shell_expand_guest_path"
