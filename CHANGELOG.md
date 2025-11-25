@@ -10,9 +10,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.4.0] - 2025-11-24
 
 ### Changed
-- **BREAKING**: Complete rewrite of WSL2 communicator for improved reliability and performance
+- Complete rewrite of WSL2 communicator for improved reliability
 - Removed base64 command encoding in favor of direct `wsl --exec bash` execution
-- Changed from `-l -c` to `--exec bash -lc` for more predictable command execution
 - Improved error handling with proper Vagrant error classes and exit code checking
 - Enhanced stderr filtering to remove harmless WSL2-specific warnings
 
@@ -23,11 +22,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `-i` flag: Use interactive shell (enables job control for background processes)
 - Background process support using `-i` flag with proper job control
 - WSL command reference documentation in [docs/wsl2-command-cheat-sheet.md](docs/wsl2-command-cheat-sheet.md)
-- Improved `wait_for_ready` implementation with proper timeout handling
 - Better logging and debug output throughout communicator
 - Private network support with static IP configuration
 - Port forwarding support via Windows netsh portproxy
-- Multi-distribution network configuration (Ubuntu netplan + Debian systemd-networkd)
 - Administrator privilege checking for network operations
 - Windows routing setup for static IP access between VMs
 - Network configuration examples in `examples/networking/`
@@ -39,7 +36,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Docker integration tests covering installation across various distributions
 - Provisioner tests (shell, file, Ansible, Chef, Salt)
 - Expanded provisioner examples with individual Vagrantfiles per provisioner type
-- Docker test examples covering 12+ different Linux distributions
 - Rake tasks for running specific test suites
 
 ### Fixed
@@ -59,7 +55,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Network Features
 - Configure static IPs using `config.vm.network "private_network", ip: "192.168.33.10"`
 - Port forwarding using `config.vm.network "forwarded_port", guest: 80, host: 8080`
-- Automatic detection of netplan (Ubuntu) vs systemd-networkd (Debian/others)
 - Persistent network configuration across VM restarts
 - VM-to-VM communication via static IP addresses
 - Windows host access to VMs via port forwarding
@@ -99,7 +94,6 @@ vagrant ssh -li "source ~/.bashrc && my-command"
 - **Public network not supported**: Bridged networking unavailable due to WSL2's shared virtual switch
 
 ### Technical Details
-- Network configuration written to `/etc/netplan/60-vagrant.yaml` (Ubuntu) or `/etc/systemd/network/10-eth0.network` (Debian)
 - Windows routes created using `route add` for static IP routing
 - Port forwarding configured using `netsh interface portproxy`
 - Routes and port forwards are non-persistent (removed on Windows restart)
