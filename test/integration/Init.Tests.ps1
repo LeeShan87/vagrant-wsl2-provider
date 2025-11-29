@@ -4,7 +4,8 @@
 
 BeforeAll {
     $script:ExampleDir = Join-Path $PSScriptRoot "..\..\examples\init"
-    $script:DistributionName = "vagrant-wsl2-init"
+    # Default distribution name should be the box name
+    $script:DistributionName = "Ubuntu"
     $script:VagrantfilePath = Join-Path $script:ExampleDir "Vagrantfile"
 
     # Ensure we're in the correct directory
@@ -52,8 +53,9 @@ Describe "Vagrant WSL2 Provider - Init Workflow" {
             $LASTEXITCODE | Should -Be 0
         }
 
-        It "Should create WSL distribution" {
+        It "Should create WSL distribution using box name" {
             $wslList = (wsl -l -v | Out-String) -replace '\0', ''
+            # Distribution name should be the box name (Ubuntu)
             $wslList | Should -Match $script:DistributionName
         }
 

@@ -69,6 +69,10 @@ module VagrantPlugins
       # WSL2 distribution name
       attr_accessor :distribution_name
 
+      # Alias for distribution_name for convenience
+      alias_method :name, :distribution_name
+      alias_method :name=, :distribution_name=
+
       # WSL2 version (1 or 2)
       attr_accessor :version
 
@@ -148,7 +152,9 @@ module VagrantPlugins
       end
 
       def finalize!
-        @distribution_name = "vagrant-#{Time.now.to_i}" if @distribution_name == UNSET_VALUE
+        # Default distribution_name will be set to nil and generated during Create action
+        # This prevents generating a new random name on every command
+        @distribution_name = nil if @distribution_name == UNSET_VALUE
         @version = 2 if @version == UNSET_VALUE
         @memory = 4096 if @memory == UNSET_VALUE
         @cpus = 2 if @cpus == UNSET_VALUE
@@ -160,8 +166,8 @@ module VagrantPlugins
       def validate(machine)
         errors = _detected_errors
 
-        # Validate distribution name
-        if @distribution_name.to_s.strip.empty?
+        # Validate distribution name (skip if nil, will be auto-generated)
+        if @distribution_name && @distribution_name.to_s.strip.empty?
           errors << "Distribution name cannot be empty"
         end
 

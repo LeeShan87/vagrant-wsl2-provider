@@ -9,21 +9,31 @@ module VagrantPlugins
         @config = machine.provider_config
       end
 
+      # Get the distribution name, preferring machine.id if it exists
+      def distribution_name
+        @machine.id || @config.distribution_name
+      end
+
       # Get the current state of the WSL2 distribution
       def state
-        # Check if distribution exists by trying to get its state
-        result = Vagrant::Util::Subprocess.execute("wsl", "--distribution", @config.distribution_name, "--exec", "echo")
+        # Return :not_created if we don't have a distribution name yet
+        return :not_created unless distribution_name
 
-        case result.exit_code
-        when 0
-          # Distribution exists and is accessible, check if running
-          running_result = Vagrant::Util::Subprocess.execute("wsl", "--distribution", @config.distribution_name, "--exec", "true")
-          return running_result.exit_code == 0 ? :running : :stopped
-        when 1, 4294967295
-          # Distribution doesn't exist or WSL error
-          :not_created
+        # Use wsl --list --verbose to check state without waking up the distribution
+        result = execute_safe("wsl", "--list", "--verbose")
+        return :not_created unless result
+
+        distributions = parse_wsl_list_output(result.stdout)
+        distro = distributions.find { |d| d[:name] == distribution_name }
+
+        return :not_created unless distro
+
+        case distro[:state]
+        when "Running"
+          :running
+        when "Stopped"
+          :stopped
         else
-          # Unknown error state
           :unknown
         end
       rescue
@@ -37,25 +47,26 @@ module VagrantPlugins
         FileUtils.mkdir_p(dist_dir) unless File.exist?(dist_dir)
 
         # Import the distribution from a tar.gz file
-        execute("wsl", "--import", @config.distribution_name,
+        execute("wsl", "--import", distribution_name,
                 dist_dir, box_path, "--version", @config.version.to_s)
       end
 
       # Start the WSL2 distribution
-      def start
-        @machine.ui.info "Starting WSL2 distribution: #{@config.distribution_name}"
-        execute("wsl", "--distribution", @config.distribution_name, "--exec", "true")
+      # @param silent [Boolean] If true, suppress UI output
+      def start(silent: false)
+        @machine.ui.info "Starting WSL2 distribution: #{distribution_name}" unless silent
+        execute("wsl", "--distribution", distribution_name, "--exec", "true")
       end
 
       # Stop the WSL2 distribution
       def halt
-        @machine.ui.info "Stopping WSL2 distribution: #{@config.distribution_name}"
-        execute("wsl", "--terminate", @config.distribution_name)
+        @machine.ui.info "Stopping WSL2 distribution: #{distribution_name}"
+        execute("wsl", "--terminate", distribution_name)
       end
 
       # Destroy the WSL2 distribution
       def destroy
-        execute("wsl", "--unregister", @config.distribution_name)
+        execute("wsl", "--unregister", distribution_name)
 
         # Wait a moment for WSL to release file handles
         sleep 1
@@ -82,7 +93,7 @@ module VagrantPlugins
 
       # Execute a command in the WSL2 distribution
       def execute_in_wsl(*args)
-        execute("wsl", "--distribution", @config.distribution_name, *args)
+        execute("wsl", "--distribution", distribution_name, *args)
       end
 
       # Public wrapper for execute method (for use by actions)
@@ -139,7 +150,7 @@ module VagrantPlugins
 
         # Export the current distribution to a tar file
         @machine.ui.info "Saving snapshot: #{snapshot_name}"
-        execute("wsl", "--export", @config.distribution_name, snapshot_file)
+        execute("wsl", "--export", distribution_name, snapshot_file)
 
         @machine.ui.success "Snapshot saved: #{snapshot_name}"
       end
@@ -156,13 +167,13 @@ module VagrantPlugins
 
         # First, unregister the current distribution
         halt if state == :running
-        execute("wsl", "--unregister", @config.distribution_name)
+        execute("wsl", "--unregister", distribution_name)
 
         # Import the snapshot as the distribution
         dist_dir = distribution_path
         FileUtils.mkdir_p(dist_dir) unless File.exist?(dist_dir)
 
-        execute("wsl", "--import", @config.distribution_name,
+        execute("wsl", "--import", distribution_name,
                 dist_dir, snapshot_file, "--version", @config.version.to_s)
 
         @machine.ui.success "Snapshot restored: #{snapshot_name}"
@@ -267,7 +278,7 @@ module VagrantPlugins
         # Count block devices that could be data disks (sde and later)
         # Use wsl -d to run command inside the distribution
         result = Vagrant::Util::Subprocess.execute(
-          "wsl", "-d", @config.distribution_name, "--", "lsblk", "-nd", "-o", "NAME"
+          "wsl", "-d", distribution_name, "--", "lsblk", "-nd", "-o", "NAME"
         )
         return false if result.exit_code != 0
 
@@ -423,6 +434,39 @@ module VagrantPlugins
       # Get the path where this distribution should be stored
       def distribution_path
         @machine.data_dir.join("wsl2_distribution").to_s
+      end
+
+      # Parse WSL list output to extract distribution information
+      def parse_wsl_list_output(output)
+        distributions = []
+
+        # Handle UTF-16LE encoding from WSL on Windows
+        output = output.force_encoding('UTF-16LE').encode('UTF-8', invalid: :replace, undef: :replace)
+
+        lines = output.lines.map(&:strip).reject(&:empty?)
+
+        # Find the header line (NAME STATE VERSION)
+        header_index = lines.find_index { |line| line.match?(/NAME.*STATE.*VERSION/i) }
+        return distributions unless header_index
+
+        # Parse distribution lines after the header
+        lines[(header_index + 1)..-1].each do |line|
+          # Remove default marker (*) and null bytes
+          line = line.gsub(/\*/, '').gsub(/\0/, '').strip
+          next if line.empty?
+
+          # Split by whitespace and extract fields
+          parts = line.split(/\s+/)
+          next if parts.length < 3
+
+          distributions << {
+            name: parts[0],
+            state: parts[1],
+            version: parts[2]
+          }
+        end
+
+        distributions
       end
     end
   end
