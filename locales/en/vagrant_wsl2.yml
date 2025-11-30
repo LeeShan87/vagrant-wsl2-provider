@@ -16,20 +16,6 @@ en:
       wsl_install_failed: "Failed to install WSL distribution '%{name}': %{stderr}"
       wsl_export_failed: "Failed to export WSL distribution '%{name}': %{stderr}"
       wsl_import_failed: "Failed to import WSL distribution '%{name}': %{stderr}"
-      dirty_distribution_exists: |
-        CRITICAL ERROR: Dirty WSL distribution detected!
-
-        The distribution '%{name}' already exists on your system and may contain modifications
-        that would contaminate your Vagrant environment.
-
-        To fix this, either:
-        1. Remove the existing distribution: wsl --unregister %{name}
-        2. Or manually create a clean base in cache directory: %{cache_path}
-
-        Clean base distribution name: %{clean_name}
-
-        This provider requires clean, reproducible environments and cannot proceed with
-        potentially contaminated distributions.
       snapshot_not_found: "Snapshot '%{name}' not found"
       data_disk_create_failed: "Failed to create data disk at '%{path}': %{stderr}"
       data_disk_not_found: "Data disk not found at '%{path}'"

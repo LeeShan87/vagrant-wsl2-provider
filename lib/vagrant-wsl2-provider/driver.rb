@@ -4,6 +4,23 @@ require "fileutils"
 module VagrantPlugins
   module WSL2
     class Driver
+      # Legacy distributions that do NOT support the --name flag with --no-launch
+      # These distributions require interactive setup and cannot be used with --name
+      # WSL explicitly returns: "'--name' is not supported when installing legacy distributions."
+      # Tested with test/Test-WSLNameFlagSupport.ps1
+      #
+      # NOTE: All modern distributions (not in this list) support --name flag by default
+      # This blocklist approach is future-proof as new distributions will support --name
+      LEGACY_DISTRIBUTIONS_WITHOUT_NAME_FLAG = [
+        'Ubuntu-20.04',
+        'Ubuntu-22.04',
+        'OracleLinux_7_9',
+        'OracleLinux_8_10',
+        'OracleLinux_9_5',
+        'openSUSE-Leap-15.6',
+        'SUSE-Linux-Enterprise-15-SP6',
+      ].freeze
+
       def initialize(machine)
         @machine = machine
         @config = machine.provider_config
@@ -12,6 +29,32 @@ module VagrantPlugins
       # Get the distribution name, preferring machine.id if it exists
       def distribution_name
         @machine.id || @config.distribution_name
+      end
+
+      # Check if a distribution supports the --name flag
+      # @param distro_name [String] The distribution name to check
+      # @return [Boolean] true if the distribution supports --name flag
+      # @note Returns true for unknown distributions (future-proof - assume modern)
+      def self.supports_name_flag?(distro_name)
+        !LEGACY_DISTRIBUTIONS_WITHOUT_NAME_FLAG.include?(distro_name)
+      end
+
+      # Check if a specific WSL distribution is installed
+      # @param distro_name [String] The distribution name to check
+      # @return [Boolean] true if the distribution exists
+      def self.distribution_installed?(distro_name)
+        result = Vagrant::Util::Subprocess.execute("wsl", "--list", "--quiet")
+
+        # If no distributions exist, wsl --list returns non-zero exit code
+        return false if result.exit_code != 0
+
+        # Handle UTF-16LE encoding from WSL on Windows
+        output = result.stdout.force_encoding('UTF-16LE').encode('UTF-8', invalid: :replace, undef: :replace)
+
+        # Check if the distribution name appears in the output
+        output.lines.any? { |line| line.strip == distro_name }
+      rescue
+        false
       end
 
       # Get the current state of the WSL2 distribution

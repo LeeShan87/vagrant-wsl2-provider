@@ -1,0 +1,22 @@
+# Export Existing Distribution Example
+#
+# This example demonstrates exporting an existing WSL2 distribution to cache
+# when it supports the --name flag
+#
+# Prerequisites:
+#   - Ubuntu-24.04 must be installed locally: wsl --install Ubuntu-24.04
+#
+# What happens:
+#   1. Vagrant detects Ubuntu-24.04 is installed locally
+#   2. Vagrant checks that Ubuntu-24.04 supports --name flag
+#   3. Vagrant exports Ubuntu-24.04 to cache
+#   4. Vagrant creates a new VM from the cached tar
+#   5. Original Ubuntu-24.04 installation remains untouched
+
+Vagrant.configure("2") do |config|
+  config.vm.box = "Ubuntu-24.04"
+
+  config.vm.provider "wsl2" do |wsl|
+    # Provider will automatically export existing Ubuntu-24.04 to cache
+  end
+end

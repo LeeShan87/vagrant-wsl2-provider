@@ -23,6 +23,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Silent distribution startup for SSH commands to prevent output pollution
 - `EnsureRunning` action for transparent VM wake-up on SSH access
+- Export existing WSL2 distributions to cache for modern distributions (supporting `--name` flag)
+- Skip Microsoft Store availability check when exporting locally installed distributions
+- Automatic handling for legacy distributions (Ubuntu 20.04/22.04, OracleLinux, etc.) via install → terminate → export flow
+- Future-proof blocklist approach: only 7 legacy distributions listed, new distributions automatically get modern treatment
+- User's original distributions are preserved (not unregistered) when exporting to cache
 
 ## [0.4.0] - 2025-11-24
 

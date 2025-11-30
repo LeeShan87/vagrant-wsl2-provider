@@ -1,0 +1,20 @@
+# Legacy Distribution Example
+#
+# This example demonstrates installing legacy WSL2 distributions
+# that don't support the --no-launch flag (Ubuntu-20.04, Ubuntu-22.04, OracleLinux, etc.)
+#
+# What happens:
+#   1. Vagrant installs the distribution interactively (launches automatically)
+#   2. Vagrant terminates it before user setup completes
+#   3. Vagrant exports it to cache
+#   4. Vagrant unregisters the base distribution
+#   5. Vagrant creates project VM from cached tar
+
+Vagrant.configure("2") do |config|
+  # Use a legacy distribution that doesn't support --no-launch
+  config.vm.box = "Ubuntu-20.04"
+
+  config.vm.provider "wsl2" do |wsl|
+    # Legacy distributions are automatically detected and handled differently
+  end
+end
