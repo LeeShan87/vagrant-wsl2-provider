@@ -9,6 +9,7 @@ module VagrantPlugins
       autoload :Destroy, File.expand_path("../action/destroy", __FILE__)
       autoload :Halt, File.expand_path("../action/halt", __FILE__)
       autoload :Start, File.expand_path("../action/start", __FILE__)
+      autoload :EnsureRunning, File.expand_path("../action/ensure_running", __FILE__)
       autoload :PrepareEnvironment, File.expand_path("../action/prepare_environment", __FILE__)
       autoload :WSLShell, File.expand_path("../action/wsl_shell", __FILE__)
       autoload :ShareFolders, File.expand_path("../action/share_folders", __FILE__)
@@ -165,16 +166,9 @@ module VagrantPlugins
       def action_ssh
         Vagrant::Action::Builder.new.tap do |b|
           b.use Vagrant::Action::Builtin::ConfigValidate
-          b.use Vagrant::Action::Builtin::Call, Vagrant::Action::Builtin::IsState, :running do |env, b2|
-            if env[:result]
-              b2.use Action::PrepareEnvironment
-              b2.use Action::WSLShell
-            else
-              env[:ui].info("Machine is not running, starting it up...")
-              b2.use action_up
-              b2.use Action::WSLShell
-            end
-          end
+          b.use Action::PrepareEnvironment
+          b.use Action::EnsureRunning
+          b.use Action::WSLShell
         end
       end
 
@@ -182,16 +176,9 @@ module VagrantPlugins
       def action_ssh_run
         Vagrant::Action::Builder.new.tap do |b|
           b.use Vagrant::Action::Builtin::ConfigValidate
-          b.use Vagrant::Action::Builtin::Call, Vagrant::Action::Builtin::IsState, :running do |env, b2|
-            if env[:result]
-              b2.use Action::PrepareEnvironment
-              b2.use Action::SSHRun
-            else
-              env[:ui].info("Machine is not running, starting it up...")
-              b2.use action_up
-              b2.use Action::SSHRun
-            end
-          end
+          b.use Action::PrepareEnvironment
+          b.use Action::EnsureRunning
+          b.use Action::SSHRun
         end
       end
 

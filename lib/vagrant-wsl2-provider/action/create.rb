@@ -14,9 +14,24 @@ module VagrantPlugins
           config = machine.provider_config
           driver = env[:wsl2_driver]
 
+          # Generate distribution name if not explicitly set
+          if !config.distribution_name
+            # Use box name as the default distribution name
+            box_name = machine.config.vm.box
+
+            # Check if a distribution with this name already exists (collision check)
+            if wsl_distribution_installed?(box_name)
+              # Name collision: append timestamp to make it unique
+              config.distribution_name = "#{box_name}_#{Time.now.to_i}"
+              env[:ui].warn "Distribution '#{box_name}' already exists, using '#{config.distribution_name}' instead"
+            else
+              config.distribution_name = box_name
+            end
+          end
+
           env[:ui].info "Creating WSL2 distribution: #{config.distribution_name}"
 
-          # Check if distribution already exists
+          # Check if distribution already exists (and it's not ours)
           if driver.state != :not_created
             raise Errors::DistributionAlreadyExists,
                   name: config.distribution_name

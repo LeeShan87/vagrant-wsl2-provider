@@ -102,7 +102,9 @@ module VagrantPlugins
 
         begin
           # Build the wsl command with parsed bash flags
-          wsl_args = ["wsl", "--distribution", config.distribution_name, "-u", "vagrant",
+          # Use machine.id (persisted) or fallback to config.distribution_name
+          distribution_name = @machine.id || config.distribution_name
+          wsl_args = ["wsl", "--distribution", distribution_name, "-u", "vagrant",
           "--exec", "bash", bash_flags, wrapped_command]
 
           # Execute the command
@@ -167,7 +169,8 @@ module VagrantPlugins
 
         # Get the distribution's filesystem root path
         # WSL distributions are accessible at \\wsl$\<distro-name>\
-        wsl_network_path = "\\\\wsl$\\#{config.distribution_name}"
+        distribution_name = @machine.id || config.distribution_name
+        wsl_network_path = "\\\\wsl$\\#{distribution_name}"
 
         # Ensure the distribution is running
         unless driver.state == :running
@@ -230,7 +233,8 @@ module VagrantPlugins
         end
 
         # Get the source path in WSL network share
-        wsl_network_path = "\\\\wsl$\\#{config.distribution_name}"
+        distribution_name = @machine.id || config.distribution_name
+        wsl_network_path = "\\\\wsl$\\#{distribution_name}"
         from_normalized = from.start_with?('/') ? from[1..-1] : from
         source_path = File.join(wsl_network_path, from_normalized)
 

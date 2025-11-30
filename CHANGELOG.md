@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Distribution names now persist across Vagrant commands (fixes #8)
+- `vagrant ssh` and other commands now remember auto-generated distribution names
+- `vagrant halt` properly shows "stopped" status instead of waking up the distribution
+- State checking no longer wakes up stopped distributions
+- `vagrant ssh` commands now silently auto-start stopped distributions without verbose output
+
+### Changed
+- Distribution names default to box name (e.g., "Ubuntu") instead of random timestamp
+- Added collision detection: appends timestamp if box name already exists as a distribution
+- Added `wsl.name` as a convenience alias for `wsl.distribution_name`
+- SSH commands now accept WSL2's auto-shutdown behavior and start distributions silently when needed
+
+### Added
+- Silent distribution startup for SSH commands to prevent output pollution
+- `EnsureRunning` action for transparent VM wake-up on SSH access
+
 ## [0.4.0] - 2025-11-24
 
 ### Changed

@@ -48,13 +48,13 @@ Describe "Vagrant WSL2 Provider - Basic Operations" {
         }
 
         It "Should execute commands via 'vagrant ssh -c'" {
-            $sshOutput = vagrant ssh -c "echo 'SSH test successful'" 2>&1
+            $sshOutput = (vagrant ssh -c "echo 'SSH test successful'" 2>&1) -join "`n"
             $LASTEXITCODE | Should -Be 0
             $sshOutput | Should -Match "SSH test successful"
         }
 
         It "Should handle SSH commands with pipes" {
-            $output = vagrant ssh -c "echo 'test' | grep 'test'" 2>&1
+            $output = (vagrant ssh -c "echo 'test' | grep 'test'" 2>&1) -join "`n"
             $LASTEXITCODE | Should -Be 0
             $output | Should -Match "test"
         }
