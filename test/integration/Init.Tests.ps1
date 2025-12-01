@@ -2,9 +2,37 @@
 # Tests: vagrant init workflow
 # Pester 5.x format
 
+# Define distribution name - must be script-scoped to be accessible in BeforeAll/AfterAll
+$script:DistributionName = "Ubuntu"
+
+# Check if distribution already exists before we start
+$installedDistros = wsl --list --quiet 2>&1
+$distroAlreadyInstalled = $false
+
+if ($LASTEXITCODE -eq 0) {
+    $installedDistros = $installedDistros -replace '\x00', ''
+    foreach ($line in $installedDistros -split "`r?`n") {
+        if ($line.Trim() -eq $script:DistributionName) {
+            $distroAlreadyInstalled = $true
+            break
+        }
+    }
+}
+
+# Skip test if distribution already exists
+if ($distroAlreadyInstalled) {
+    Write-Host "Skipping test: $($script:DistributionName) already exists on this system" -ForegroundColor Yellow
+    Write-Host "This test requires a clean system without the test distribution pre-installed" -ForegroundColor Yellow
+    $script:SkipTests = $true
+    return
+}
+
+$script:SkipTests = $false
+
 BeforeAll {
+    if ($script:SkipTests) { return }
+
     $script:ExampleDir = Join-Path $PSScriptRoot "..\..\examples\init"
-    # Default distribution name should be the box name
     $script:DistributionName = "Ubuntu"
     $script:VagrantfilePath = Join-Path $script:ExampleDir "Vagrantfile"
 
@@ -19,6 +47,8 @@ BeforeAll {
 }
 
 AfterAll {
+    if ($script:SkipTests) { return }
+
     # Cleanup after all tests
     vagrant destroy -f 2>$null | Out-Null
 
@@ -30,7 +60,7 @@ AfterAll {
     Pop-Location
 }
 
-Describe "Vagrant WSL2 Provider - Init Workflow" {
+Describe "Vagrant WSL2 Provider - Init Workflow" -Skip:$script:SkipTests {
 
     Context "When initializing a new Vagrantfile" {
 

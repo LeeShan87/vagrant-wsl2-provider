@@ -2,9 +2,38 @@
 # Tests: Exporting existing local distributions that support --name flag to cache
 # Pester 5.x format
 
+# Define test distribution name - must be script-scoped to be accessible in BeforeAll/AfterAll
+$script:TestDistro = "Ubuntu-24.04"  # Must support --name flag
+$script:DistroInstalledByTest = $false
+
+# Check if test distribution already exists before we start
+$installedDistros = wsl --list --quiet 2>&1
+$distroAlreadyInstalled = $false
+
+if ($LASTEXITCODE -eq 0) {
+    $installedDistros = $installedDistros -replace '\x00', ''
+    foreach ($line in $installedDistros -split "`r?`n") {
+        if ($line.Trim() -eq $script:TestDistro) {
+            $distroAlreadyInstalled = $true
+            break
+        }
+    }
+}
+
+# Skip test if distribution already exists
+if ($distroAlreadyInstalled) {
+    Write-Host "Skipping test: $($script:TestDistro) already exists on this system"  -ForegroundColor Yellow
+    Write-Host "This test requires a clean system without the test distribution pre-installed"  -ForegroundColor Yellow
+    $script:SkipTests = $true
+    return
+}
+
+$script:SkipTests = $false
+
 BeforeAll {
+    if ($script:SkipTests) { return }
+    $script:TestDistro = "Ubuntu-24.04" 
     $script:ExampleDir = Join-Path $PSScriptRoot "..\..\examples\export-existing"
-    $script:TestDistro = "Ubuntu-24.04"  # Must support --name flag
     $script:ProjectDistroName = "vagrant-wsl2-export-test"
 
     # Ensure we're in the correct directory
@@ -15,41 +44,35 @@ BeforeAll {
 
     # Cleanup cache if it exists
     $cacheDir = Join-Path $env:USERPROFILE ".vagrant.d\wsl2-cache"
-    $cacheTar = Join-Path $cacheDir "$script:TestDistro-vagrant-base.tar"
+    $cacheTar = Join-Path $cacheDir "$($script:TestDistro)-vagrant-base.tar"
     if (Test-Path $cacheTar) {
         Remove-Item $cacheTar -Force
         Write-Host "Removed existing cache: $cacheTar"
     }
 
-    # Ensure test distribution is installed locally
-    # Check if already installed
-    $installedDistros = wsl --list --quiet 2>&1
-    $distroInstalled = $false
-
-    if ($LASTEXITCODE -eq 0) {
-        $installedDistros = $installedDistros -replace '\x00', ''
-        foreach ($line in $installedDistros -split "`r?`n") {
-            if ($line.Trim() -eq $script:TestDistro) {
-                $distroInstalled = $true
-                break
-            }
-        }
-    }
-
-    if (-not $distroInstalled) {
-        Write-Host "Installing test distribution: $script:TestDistro"
-        wsl --install --distribution $script:TestDistro --no-launch
-        Start-Sleep -Seconds 10  # Wait for installation
-    }
+    # Install test distribution (we already checked it doesn't exist in the script-level check)
+    Write-Host "Installing test distribution: $($script:TestDistro)"
+    wsl --install --distribution $script:TestDistro --no-launch
+    Start-Sleep -Seconds 10  # Wait for installation
+    $script:DistroInstalledByTest = $true
 }
 
 AfterAll {
+    if ($script:SkipTests) { return }
+
     # Cleanup after all tests
     vagrant destroy -f 2>$null | Out-Null
+
+    # Remove the test distribution if we installed it
+    if ($script:DistroInstalledByTest) {
+        Write-Host "Removing test distribution: $($script:TestDistro)"
+        wsl --unregister $script:TestDistro 2>$null | Out-Null
+    }
+
     Pop-Location
 }
 
-Describe "Vagrant WSL2 Provider - Export Existing Distribution" {
+Describe "Vagrant WSL2 Provider - Export Existing Distribution" -Skip:$script:SkipTests {
 
     Context "When exporting an existing distribution to cache" {
 
