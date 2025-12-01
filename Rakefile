@@ -93,3 +93,13 @@ desc "Run all distributions compatibility test - full (Pester, all distros)"
 task :test_all_distributions_full => :ensure_pester do
   sh "powershell -File test/integration/Invoke-PesterTests.ps1 -TestFile AllDistributions -Full"
 end
+
+desc "Run export existing distribution integration test"
+task :test_export_existing => :ensure_pester do
+  sh "powershell -File test/integration/Invoke-PesterTests.ps1 -TestFile ExportExisting"
+end
+
+desc "Run legacy distribution integration test (slow - only with -Full)"
+task :test_legacy_distro_full => :ensure_pester do
+  sh "powershell -File test/integration/Invoke-PesterTests.ps1 -TestFile LegacyDistro -Full"
+end

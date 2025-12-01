@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2025-12-01
+
 ### Fixed
 - Distribution names now persist across Vagrant commands (fixes #8)
 - `vagrant ssh` and other commands now remember auto-generated distribution names
@@ -23,6 +25,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Silent distribution startup for SSH commands to prevent output pollution
 - `EnsureRunning` action for transparent VM wake-up on SSH access
+- Export existing WSL2 distributions to cache for modern distributions (supporting `--name` flag)
+- Removed dirty OS check before vagrant up
+- Automatic handling for legacy distributions (Ubuntu 20.04/22.04, OracleLinux, etc.) via install -> terminate -> export flow
+- Future-proof blocklist approach: only 7 legacy distributions listed, new distributions automatically get modern treatment
+- User's original distributions are preserved (not unregistered) when exporting to cache
 
 ## [0.4.0] - 2025-11-24
 
@@ -216,7 +223,8 @@ end
 - Some SUSE Enterprise distributions have guest detection issues
 - AlmaLinux-10 and archlinux have provisioning limitations
 
-[unreleased]: https://github.com/LeeShan87/vagrant-wsl2-provider/compare/v0.4.0...HEAD
+[unreleased]: https://github.com/LeeShan87/vagrant-wsl2-provider/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/LeeShan87/vagrant-wsl2-provider/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/LeeShan87/vagrant-wsl2-provider/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/LeeShan87/vagrant-wsl2-provider/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/LeeShan87/vagrant-wsl2-provider/compare/v0.1.0...v0.2.0

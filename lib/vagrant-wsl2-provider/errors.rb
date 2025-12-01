@@ -43,10 +43,6 @@ module VagrantPlugins
         error_key(:wsl_import_failed)
       end
 
-      class DirtyDistributionExists < WSL2Error
-        error_key(:dirty_distribution_exists)
-      end
-
       class SnapshotNotFound < WSL2Error
         error_key(:snapshot_not_found)
       end
